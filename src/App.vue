@@ -127,29 +127,14 @@
           </button>
         </div>
 
-        <!-- 用户信息 -->
-        <div class="user-profile">
-          <button class="profile-btn">
-            <div class="user-avatar">
-              <span class="avatar-text">1</span>
-            </div>
-            <span class="username">1917225343</span>
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              width="12"
-              height="12"
-              class="dropdown-icon"
-            >
-              <path
-                fill-rule="evenodd"
-                clip-rule="evenodd"
-                d="M4.08 7.6a1.5 1.5 0 0 1 2.12 0l5.66 5.65 5.66-5.65a1.5 1.5 0 1 1 2.12 2.12l-6.72 6.72a1.5 1.5 0 0 1-2.12 0L4.08 9.72a1.5 1.5 0 0 1 0-2.12Z"
-                fill="currentColor"
-              />
-            </svg>
-          </button>
+        <!-- 用户信息/登录区域 -->
+        <div class="user-section">
+          <!-- 未登录状态 -->
+          <div class="auth-buttons">
+            <router-link to="/login" class="login-btn">
+              登录
+            </router-link>
+          </div>
         </div>
       </div>
     </header>
@@ -333,58 +318,46 @@
   transform: translateY(-1px);
 }
 
-/* 用户信息 */
-.user-profile {
+/* 用户信息/登录区域 */
+.user-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-left: 8px;
 }
 
-.profile-btn {
-  background: rgba(17, 25, 39, 0.04);
-  border: none;
+/* 认证按钮 */
+.auth-buttons {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px;
-  border-radius: 50px;
-  cursor: pointer;
-  transition: all 0.2s ease;
 }
 
-.profile-btn:hover {
-  background: rgba(17, 25, 39, 0.08);
-}
-
-.user-avatar {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  display: flex;
+.login-btn {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-right: 4px;
-}
-
-.avatar-text {
+  padding: 8px 16px;
+  background: #1890ff;
   color: white;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.username {
-  font-size: 12px;
+  text-decoration: none;
+  border-radius: 6px;
+  font-size: 14px;
   font-weight: 500;
-  color: #6b7280;
-  margin-right: 4px;
+  transition: all 0.2s ease;
+  border: 1px solid #1890ff;
 }
 
-.dropdown-icon {
-  color: #9ca3af;
-  transition: transform 0.2s ease;
+.login-btn:hover {
+  background: #40a9ff;
+  border-color: #40a9ff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
 }
 
-.profile-btn:hover .dropdown-icon {
-  transform: rotate(180deg);
+/* 原用户样式保留但隐藏 */
+.user-profile {
+  display: none;
 }
 
 /* 响应式设计 */
