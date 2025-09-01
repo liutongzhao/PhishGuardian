@@ -1,7 +1,7 @@
 <template>
-  <div class="login-page">
-    <!-- 登录主容器 -->
-    <div class="login-container">
+  <div class="register-page">
+    <!-- 注册主容器 -->
+    <div class="register-container">
       <!-- 品牌Logo - 在卡片上方 -->
       <div class="brand-section">
         <div class="brand-logo">
@@ -10,16 +10,16 @@
         </div>
       </div>
 
-      <!-- 登录卡片 -->
-      <div class="login-card">
-        <!-- 登录标题 -->
-        <h1 class="login-title">登录</h1>
+      <!-- 注册卡片 -->
+      <div class="register-card">
+        <!-- 注册标题 -->
+        <h1 class="register-title">注册</h1>
 
-        <!-- 登录表单 -->
-        <form class="login-form" @submit.prevent="handleLogin">
-          <!-- 用户名或邮箱输入 -->
+        <!-- 注册表单 -->
+        <form class="register-form" @submit.prevent="handleRegister">
+          <!-- 用户名输入 -->
           <div class="form-field">
-            <label class="field-label">用户名或邮箱</label>
+            <label class="field-label">用户名</label>
             <div class="input-container">
               <svg class="input-icon" viewBox="0 0 24 24" fill="currentColor">
                 <path
@@ -28,8 +28,8 @@
               </svg>
               <input
                 type="text"
-                v-model="loginForm.username"
-                placeholder="请输入您的用户名或邮箱地址"
+                v-model="registerForm.username"
+                placeholder="请输入用户名"
                 class="form-input"
                 required
               />
@@ -47,10 +47,12 @@
               </svg>
               <input
                 :type="showPassword ? 'text' : 'password'"
-                v-model="loginForm.password"
-                placeholder="请输入您的密码"
+                v-model="registerForm.password"
+                placeholder="输入密码，最短 8 位，最长 20 位"
                 class="form-input"
                 required
+                minlength="8"
+                maxlength="20"
               />
               <button
                 type="button"
@@ -72,6 +74,87 @@
             </div>
           </div>
 
+          <!-- 确认密码输入 -->
+          <div class="form-field">
+            <label class="field-label">确认密码</label>
+            <div class="input-container">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM12 17c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zM15.1 8H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"
+                />
+              </svg>
+              <input
+                :type="showConfirmPassword ? 'text' : 'password'"
+                v-model="registerForm.confirmPassword"
+                placeholder="确认密码"
+                class="form-input"
+                required
+              />
+              <button
+                type="button"
+                @click="toggleConfirmPassword"
+                class="password-toggle"
+                aria-label="切换确认密码显示"
+              >
+                <svg v-if="showConfirmPassword" viewBox="0 0 24 24" fill="currentColor">
+                  <path
+                    d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"
+                  />
+                </svg>
+                <svg v-else viewBox="0 0 24 24" fill="currentColor">
+                  <path
+                    d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"
+                  />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- 邮箱输入 -->
+          <div class="form-field">
+            <label class="field-label">邮箱</label>
+            <div class="input-container">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path
+                  d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.89 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"
+                />
+              </svg>
+              <input
+                type="email"
+                v-model="registerForm.email"
+                placeholder="输入邮箱地址"
+                class="form-input"
+                required
+              />
+              <button
+                type="button"
+                @click="sendVerificationCode"
+                class="verification-btn"
+                :disabled="!registerForm.email || isCodeSending"
+              >
+                {{ isCodeSending ? '发送中...' : '获取验证码' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- 验证码输入 -->
+          <div class="form-field">
+            <label class="field-label">验证码</label>
+            <div class="input-container">
+              <svg class="input-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z" />
+              </svg>
+              <input
+                type="text"
+                v-model="registerForm.verificationCode"
+                placeholder="输入验证码"
+                class="form-input"
+                required
+                maxlength="6"
+              />
+            </div>
+          </div>
+
           <!-- 用户协议 -->
           <div class="form-options">
             <label class="checkbox-wrapper">
@@ -82,31 +165,26 @@
             </label>
           </div>
 
-          <!-- 登录按钮 -->
-          <button type="submit" class="login-button" :disabled="isLoading || !agreeTerms">
-            <span v-if="!isLoading">登录</span>
-            <span v-else>登录中...</span>
+          <!-- 注册按钮 -->
+          <button type="submit" class="register-button" :disabled="isLoading || !agreeTerms">
+            <span v-if="!isLoading">注册</span>
+            <span v-else>注册中...</span>
           </button>
-
-          <!-- 忘记密码 -->
-          <div class="forgot-section">
-            <a href="#" class="forgot-link">忘记密码？</a>
-          </div>
 
           <!-- 分隔线 -->
           <div class="divider">
             <span class="divider-text">或</span>
           </div>
 
-          <!-- 其他登录方式 -->
-          <div class="other-login-section">
-            <button type="button" class="other-login-button">其他登录方式</button>
+          <!-- 其他注册方式 -->
+          <div class="other-register-section">
+            <button type="button" class="other-register-button">其他注册选项</button>
           </div>
 
-          <!-- 注册提示 -->
-          <div class="register-section">
-            <span class="register-text">没有账户？</span>
-            <router-link to="/register" class="register-link">注册</router-link>
+          <!-- 登录提示 -->
+          <div class="login-section">
+            <span class="login-text">已有账户？</span>
+            <router-link to="/login" class="login-link">登录</router-link>
           </div>
         </form>
       </div>
@@ -119,31 +197,83 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 
 defineOptions({
-  name: 'LoginPage',
+  name: 'RegisterPage',
 })
 
 const router = useRouter()
 
 // 表单数据
-const loginForm = ref({
+const registerForm = ref({
   username: '',
   password: '',
+  confirmPassword: '',
+  email: '',
+  verificationCode: '',
 })
 
 // 表单状态
 const showPassword = ref(false)
+const showConfirmPassword = ref(false)
 const agreeTerms = ref(false)
 const isLoading = ref(false)
+const isCodeSending = ref(false)
 
 // 切换密码显示
 const togglePassword = () => {
   showPassword.value = !showPassword.value
 }
 
-// 处理登录
-const handleLogin = async () => {
-  if (!loginForm.value.username || !loginForm.value.password) {
-    alert('请填写完整的登录信息')
+// 切换确认密码显示
+const toggleConfirmPassword = () => {
+  showConfirmPassword.value = !showConfirmPassword.value
+}
+
+// 发送验证码
+const sendVerificationCode = async () => {
+  if (!registerForm.value.email) {
+    alert('请先输入邮箱地址')
+    return
+  }
+
+  isCodeSending.value = true
+
+  try {
+    // 这里添加发送验证码的逻辑
+    console.log('发送验证码到:', registerForm.value.email)
+
+    // 模拟发送验证码请求
+    await new Promise((resolve) => setTimeout(resolve, 1000))
+
+    alert('验证码已发送到您的邮箱')
+  } catch (error) {
+    console.error('发送验证码失败:', error)
+    alert('发送验证码失败，请重试')
+  } finally {
+    isCodeSending.value = false
+  }
+}
+
+// 处理注册
+const handleRegister = async () => {
+  // 表单验证
+  if (
+    !registerForm.value.username ||
+    !registerForm.value.password ||
+    !registerForm.value.confirmPassword ||
+    !registerForm.value.email ||
+    !registerForm.value.verificationCode
+  ) {
+    alert('请填写完整的注册信息')
+    return
+  }
+
+  if (registerForm.value.password !== registerForm.value.confirmPassword) {
+    alert('两次输入的密码不一致')
+    return
+  }
+
+  if (registerForm.value.password.length < 8 || registerForm.value.password.length > 20) {
+    alert('密码长度应在8-20位之间')
     return
   }
 
@@ -155,16 +285,17 @@ const handleLogin = async () => {
   isLoading.value = true
 
   try {
-    console.log('登录信息:', loginForm.value)
+    console.log('注册信息:', registerForm.value)
 
-    // 模拟登录请求
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    // 模拟注册请求
+    await new Promise((resolve) => setTimeout(resolve, 1500))
 
-    // 登录成功后跳转
-    router.push('/')
+    alert('注册成功！')
+    // 注册成功后跳转到登录页面
+    router.push('/login')
   } catch (error) {
-    console.error('登录失败:', error)
-    alert('登录失败，请重试')
+    console.error('注册失败:', error)
+    alert('注册失败，请重试')
   } finally {
     isLoading.value = false
   }
@@ -173,7 +304,7 @@ const handleLogin = async () => {
 
 <style scoped>
 /* 页面整体布局 - 白色背景，完全无滚动 */
-.login-page {
+.register-page {
   width: 100vw;
   height: 100vh;
   background: #ffffff;
@@ -187,20 +318,20 @@ const handleLogin = async () => {
   flex-direction: column;
 }
 
-/* 登录主容器 */
-.login-container {
+/* 注册主容器 */
+.register-container {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 20px 20px 20px; /* 减少顶部间距，让登录区域往上移 */
-  margin-top: -40px; /* 进一步往上移 */
+  padding: 80px 20px 20px 20px; /* 为导航栏留出空间 */
+  margin-top: -40px; /* 向上偏移 */
 }
 
 /* 品牌区域 - 在卡片上方 */
 .brand-section {
-  margin-bottom: 20px; /* 减少间距 */
+  margin-bottom: 20px;
 }
 
 .brand-logo {
@@ -226,33 +357,33 @@ const handleLogin = async () => {
   letter-spacing: -0.02em;
 }
 
-/* 登录卡片 - 白色背景带阴影，更窄的设计 */
-.login-card {
+/* 注册卡片 - 白色背景带阴影，更窄的设计 */
+.register-card {
   background: white;
   border-radius: 16px;
-  padding: 32px 28px; /* 减少内边距 */
+  padding: 32px 28px;
   width: 100%;
-  max-width: 360px; /* 从400px减少到360px，让卡片更窄 */
+  max-width: 360px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   position: relative;
 }
 
-/* 登录标题 */
-.login-title {
-  font-size: 22px; /* 稍微减小字体 */
+/* 注册标题 */
+.register-title {
+  font-size: 22px;
   font-weight: 600;
   color: #1c1f23;
   text-align: center;
-  margin: 0 0 28px 0; /* 减少下边距 */
+  margin: 0 0 28px 0;
 }
 
 /* 表单样式 */
-.login-form {
+.register-form {
   width: 100%;
 }
 
 .form-field {
-  margin-bottom: 18px; /* 减少字段间距 */
+  margin-bottom: 18px;
 }
 
 .field-label {
@@ -321,9 +452,33 @@ const handleLogin = async () => {
   color: #6b7280;
 }
 
+/* 验证码按钮 */
+.verification-btn {
+  position: absolute;
+  right: 8px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  z-index: 2;
+}
+
+.verification-btn:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.verification-btn:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
 /* 用户协议 */
 .form-options {
-  margin-bottom: 20px; /* 减少间距 */
+  margin-bottom: 20px;
 }
 
 .checkbox-wrapper {
@@ -378,10 +533,10 @@ const handleLogin = async () => {
   text-decoration: underline;
 }
 
-/* 登录按钮 */
-.login-button {
+/* 注册按钮 */
+.register-button {
   width: 100%;
-  padding: 11px; /* 稍微减少内边距 */
+  padding: 11px;
   background: #3b82f6;
   color: white;
   border: none;
@@ -390,39 +545,23 @@ const handleLogin = async () => {
   font-weight: 500;
   cursor: pointer;
   transition: background 0.2s ease;
-  margin-bottom: 14px; /* 减少下边距 */
+  margin-bottom: 14px;
 }
 
-.login-button:hover:not(:disabled) {
+.register-button:hover:not(:disabled) {
   background: #2563eb;
 }
 
-.login-button:disabled {
+.register-button:disabled {
   background: #9ca3af;
   cursor: not-allowed;
-}
-
-/* 忘记密码 */
-.forgot-section {
-  text-align: center;
-  margin-bottom: 20px; /* 减少间距 */
-}
-
-.forgot-link {
-  color: #3b82f6;
-  text-decoration: none;
-  font-size: 14px;
-}
-
-.forgot-link:hover {
-  text-decoration: underline;
 }
 
 /* 分隔线 */
 .divider {
   position: relative;
   text-align: center;
-  margin: 20px 0; /* 减少间距 */
+  margin: 20px 0;
 }
 
 .divider::before {
@@ -442,12 +581,12 @@ const handleLogin = async () => {
   font-size: 14px;
 }
 
-/* 其他登录方式 */
-.other-login-section {
-  margin-bottom: 20px; /* 减少间距 */
+/* 其他注册方式 */
+.other-register-section {
+  margin-bottom: 20px;
 }
 
-.other-login-button {
+.other-register-button {
   width: 100%;
   padding: 12px;
   background: white;
@@ -459,36 +598,36 @@ const handleLogin = async () => {
   transition: all 0.2s ease;
 }
 
-.other-login-button:hover {
+.other-register-button:hover {
   background: #f9fafb;
   border-color: #d1d5db;
 }
 
-/* 注册提示 */
-.register-section {
+/* 登录提示 */
+.login-section {
   text-align: center;
   font-size: 14px;
 }
 
-.register-text {
+.login-text {
   color: #6b7280;
   margin-right: 8px;
 }
 
-.register-link {
+.login-link {
   color: #3b82f6;
   text-decoration: none;
   font-weight: 500;
 }
 
-.register-link:hover {
+.login-link:hover {
   text-decoration: underline;
 }
 
 /* 响应式设计 */
 @media (max-width: 480px) {
-  .login-card {
-    padding: 28px 20px; /* 移动端进一步减少内边距 */
+  .register-card {
+    padding: 28px 20px;
     margin: 0 16px;
     max-width: none;
   }
@@ -497,7 +636,7 @@ const handleLogin = async () => {
     font-size: 20px;
   }
 
-  .login-title {
+  .register-title {
     font-size: 20px;
   }
 
@@ -506,33 +645,33 @@ const handleLogin = async () => {
     height: 32px;
   }
 
-  .login-container {
-    margin-top: -20px; /* 移动端往上移动更少 */
+  .register-container {
+    margin-top: -20px;
   }
 }
 
 @media (max-width: 320px) {
-  .login-card {
-    padding: 24px 16px; /* 小屏幕进一步减少内边距 */
+  .register-card {
+    padding: 24px 16px;
   }
 }
 
 /* 确保在所有情况下都无滚动 */
 @media (max-height: 600px) {
-  .login-container {
+  .register-container {
     padding: 20px;
-    margin-top: -20px; /* 低屏幕时减少往上移的幅度 */
+    margin-top: -20px;
   }
 
-  .login-card {
-    padding: 20px; /* 进一步压缩 */
+  .register-card {
+    padding: 20px;
   }
 
   .brand-section {
     margin-bottom: 16px;
   }
 
-  .login-title {
+  .register-title {
     margin-bottom: 20px;
   }
 }

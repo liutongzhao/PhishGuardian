@@ -48,12 +48,12 @@
 
         <!-- 导航菜单 -->
         <nav class="primary-nav">
-          <router-link to="/" class="nav-link active-link">
+          <router-link to="/" class="nav-link">
             <span>首页</span>
           </router-link>
-          <a href="#" class="nav-link">
+          <router-link to="/console" class="nav-link">
             <span>控制台</span>
-          </a>
+          </router-link>
           <a href="#" class="nav-link">
             <span>定价</span>
           </a>
@@ -131,9 +131,10 @@
         <div class="user-section">
           <!-- 未登录状态 -->
           <div class="auth-buttons">
-            <router-link to="/login" class="login-btn">
-              登录
-            </router-link>
+            <div class="auth-button-group">
+              <router-link to="/login" class="auth-btn login-btn"> 登录 </router-link>
+              <router-link to="/register" class="auth-btn register-btn"> 注册 </router-link>
+            </div>
           </div>
         </div>
       </div>
@@ -284,12 +285,6 @@
   font-weight: 700;
 }
 
-.nav-link.active-link,
-.nav-link.router-link-active {
-  color: #0064fa;
-  font-weight: 700;
-}
-
 /* 功能按钮组 */
 .action-buttons {
   display: flex;
@@ -330,29 +325,49 @@
 .auth-buttons {
   display: flex;
   align-items: center;
-  gap: 8px;
 }
 
-.login-btn {
+.auth-button-group {
+  display: flex;
+  background: #ffffff;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e1e5e9;
+}
+
+.auth-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 8px 16px;
-  background: #1890ff;
-  color: white;
-  text-decoration: none;
-  border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
+  text-decoration: none;
   transition: all 0.2s ease;
-  border: 1px solid #1890ff;
+  border: none;
+  min-width: 60px;
+}
+
+.login-btn {
+  background: #f5f5f5;
+  color: #666666;
+  border-radius: 20px 0 0 20px;
 }
 
 .login-btn:hover {
+  background: #e8e8e8;
+  color: #333333;
+}
+
+.register-btn {
+  background: #1890ff;
+  color: white;
+  border-radius: 0 20px 20px 0;
+}
+
+.register-btn:hover {
   background: #40a9ff;
-  border-color: #40a9ff;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
 }
 
 /* 原用户样式保留但隐藏 */
@@ -456,6 +471,12 @@
   .user-avatar {
     width: 22px;
     height: 22px;
+  }
+
+  .auth-btn {
+    padding: 6px 12px;
+    font-size: 13px;
+    min-width: 50px;
   }
 }
 </style>
