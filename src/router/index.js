@@ -6,6 +6,7 @@ import Console from '../views/Console.vue'
 import Dashboard from '../views/console/Dashboard.vue'
 import EmailBind from '../views/console/EmailBind.vue'
 import EmailView from '../views/console/EmailView.vue'
+import EmailAssistant from '../views/console/EmailAssistant.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -45,6 +46,11 @@ const router = createRouter({
           path: 'email-view',
           name: 'EmailView',
           component: EmailView,
+        },
+        {
+          path: 'email-assistant',
+          name: 'EmailAssistant',
+          component: EmailAssistant,
         },
       ],
     },

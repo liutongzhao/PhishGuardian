@@ -317,16 +317,18 @@ const maskAuthCode = (authCode) => {
 }
 
 .page-title {
-  font-size: 24px;
-  font-weight: 600;
-  color: #1c1f23;
-  margin: 0 0 4px 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.02em;
 }
 
 .page-subtitle {
-  font-size: 14px;
+  font-size: 16px;
   color: #6b7280;
   margin: 0;
+  line-height: 1.5;
 }
 
 .bind-content {

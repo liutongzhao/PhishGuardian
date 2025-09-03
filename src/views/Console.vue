@@ -3,10 +3,18 @@
     <!-- 控制台主容器 -->
     <div class="console-container">
       <!-- 左侧导航栏 -->
-      <aside class="console-sidebar">
+      <aside class="console-sidebar" :class="{ 'sidebar-collapsed': isSidebarCollapsed }">
         <!-- 控制台标题 -->
         <div class="sidebar-header">
           <h2 class="sidebar-title">控制台</h2>
+          <button class="toggle-sidebar" @click="toggleSidebar">
+            <svg v-if="!isSidebarCollapsed" class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            <svg v-else class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
         </div>
 
         <!-- 导航菜单 -->
@@ -68,6 +76,26 @@
             </svg>
             <span class="nav-text">邮件查看</span>
           </router-link>
+
+          <router-link
+            to="/console/email-assistant"
+            class="nav-item"
+            :class="{ active: $route.path.includes('email-assistant') }"
+          >
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+              <circle cx="9" cy="10" r="1" />
+              <circle cx="15" cy="10" r="1" />
+              <path d="M9.5 13a3.5 3.5 0 0 0 5 0" />
+            </svg>
+            <span class="nav-text">邮件助手</span>
+          </router-link>
         </nav>
       </aside>
 
@@ -80,9 +108,17 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
+
 defineOptions({
   name: 'ConsolePage',
 })
+
+const isSidebarCollapsed = ref(false)
+
+function toggleSidebar() {
+  isSidebarCollapsed.value = !isSidebarCollapsed.value
+}
 </script>
 
 <style scoped>
@@ -119,11 +155,49 @@ defineOptions({
   position: relative;
   z-index: 10;
   overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+/* 收起的侧边栏 */
+.sidebar-collapsed {
+  width: 60px;
+  min-width: 60px;
+}
+
+/* 切换按钮 */
+.toggle-sidebar {
+  position: absolute;
+  top: 24px;
+  right: 12px;
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  border-radius: 4px;
+  padding: 0;
+}
+
+.toggle-sidebar:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.toggle-icon {
+  width: 16px;
+  height: 16px;
 }
 
 /* 侧边栏标题 */
 .sidebar-header {
   padding: 24px 20px 20px 20px;
+  position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .sidebar-title {
@@ -132,6 +206,13 @@ defineOptions({
   color: #374151;
   margin: 0;
   letter-spacing: -0.025em;
+  transition: opacity 0.3s ease;
+}
+
+.sidebar-collapsed .sidebar-title {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
 }
 
 /* 侧边栏导航 */
@@ -152,6 +233,16 @@ defineOptions({
   transition: all 0.15s ease;
   font-weight: 500;
   white-space: nowrap;
+  overflow: hidden;
+}
+
+.sidebar-collapsed .nav-item {
+  justify-content: center;
+  padding: 10px 0;
+}
+
+.sidebar-collapsed .nav-text {
+  display: none;
 }
 
 .nav-item:hover {
@@ -175,6 +266,10 @@ defineOptions({
 
 .nav-item.active[href*='email-view'] {
   color: #3b82f6;
+}
+
+.nav-item.active[href*='email-assistant'] {
+  color: #d12323;
 }
 
 .nav-icon {
@@ -223,6 +318,11 @@ defineOptions({
     width: 180px;
     min-width: 180px;
   }
+  
+  .sidebar-collapsed {
+    width: 50px;
+    min-width: 50px;
+  }
 
   .sidebar-header {
     padding: 20px 12px 16px 12px;
@@ -256,6 +356,11 @@ defineOptions({
   .console-sidebar {
     width: 160px;
     min-width: 160px;
+  }
+  
+  .sidebar-collapsed {
+    width: 45px;
+    min-width: 45px;
   }
 
   .sidebar-header {

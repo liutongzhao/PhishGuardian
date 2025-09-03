@@ -29,7 +29,7 @@
         </div>
 
         <div class="action-buttons">
-          <button class="primary-btn">▶ 前往控制台</button>
+          <button class="primary-btn" @click="router.push('/console')">▶ 前往控制台</button>
           <button class="secondary-btn">📄 文档</button>
         </div>
       </div>
@@ -103,11 +103,15 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 
 // HomePage 组件逻辑
 defineOptions({
   name: 'HomePage',
 })
+
+// 获取路由实例
+const router = useRouter()
 
 // 打字机效果
 const fullText = '向世界展示更强大、更具影响力的邮件安全助手！'
