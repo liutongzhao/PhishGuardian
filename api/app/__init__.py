@@ -42,12 +42,16 @@ def create_app(config_name=None):
     from app.api import blueprints
     from app.api.health import health_bp
     from app.api.auth import auth_bp
+    from app.api.email import email_bp
     
     # 注册健康检查蓝图
     app.register_blueprint(health_bp, url_prefix='/api')
     
     # 注册认证蓝图
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
+    
+    # 注册邮箱管理蓝图
+    app.register_blueprint(email_bp, url_prefix='/api/email')
     
     # 创建数据库表
     with app.app_context():
@@ -57,4 +61,4 @@ def create_app(config_name=None):
 
 
 # 模型导入区域
-from app.models import User, RegistrationType
+from app.models import User, RegistrationType, EmailProvider

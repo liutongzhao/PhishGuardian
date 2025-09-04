@@ -68,8 +68,7 @@ def run(env, host, port, debug):
 def init_db(env):
     """初始化数据库"""
     os.environ['FLASK_ENV'] = env
-    config_class = get_config_class(env)
-    app = create_app(config_class)
+    app = create_app(env)
     
     with app.app_context():
         click.echo('创建数据库表...')
@@ -85,8 +84,7 @@ def drop_db(env):
     """删除所有数据库表"""
     if click.confirm('确定要删除所有数据库表吗？此操作不可恢复！'):
         os.environ['FLASK_ENV'] = env
-        config_class = get_config_class(env)
-        app = create_app(config_class)
+        app = create_app(env)
         
         with app.app_context():
             click.echo('删除数据库表...')
@@ -102,8 +100,7 @@ def reset_db(env):
     """重置数据库（删除后重新创建）"""
     if click.confirm('确定要重置数据库吗？所有数据将丢失！'):
         os.environ['FLASK_ENV'] = env
-        config_class = get_config_class(env)
-        app = create_app(config_class)
+        app = create_app(env)
         
         with app.app_context():
             click.echo('删除现有数据库表...')
@@ -123,13 +120,13 @@ def reset_db(env):
 def db_status(env):
     """查看数据库状态"""
     os.environ['FLASK_ENV'] = env
-    config_class = get_config_class(env)
-    app = create_app(config_class)
+    app = create_app(env)
     
     with app.app_context():
         try:
             # 检查数据库连接
-            db.engine.execute('SELECT 1')
+            with db.engine.connect() as connection:
+                connection.execute(db.text('SELECT 1'))
             click.echo('✓ 数据库连接正常')
             click.echo('\n当前为干净的服务器，无业务数据表')
             

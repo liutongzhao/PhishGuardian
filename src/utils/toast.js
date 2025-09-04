@@ -23,12 +23,24 @@ class ToastManager {
   }
 
   show(options) {
+    // 参数验证和默认值处理
+    if (!options || typeof options !== 'object') {
+      console.error('Toast show method requires an options object')
+      return
+    }
+    
     const {
       message,
       type = 'info',
       duration = 3000,
       closable = true
     } = options
+    
+    // 验证message参数
+    if (!message || typeof message !== 'string') {
+      console.error('Toast message is required and must be a string')
+      return
+    }
 
     // 创建Toast实例
     const toastElement = document.createElement('div')
