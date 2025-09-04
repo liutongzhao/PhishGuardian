@@ -94,8 +94,8 @@ def send_verification_code():
             user = User(
                 username='',  # 临时为空，注册时填写
                 email=email,
-                github='',  # 临时为空
-                wechat='',  # 临时为空
+                github=None,  # 设置为None避免UNIQUE约束冲突
+                wechat=None,  # 设置为None避免UNIQUE约束冲突
                 registration_method=RegistrationType.EMAIL,
                 is_activated=False
             )
@@ -252,8 +252,6 @@ def send_email_verification_code(email, code):
     smtp_username = os.getenv('SMTP_USERNAME', '15209828080@163.com')
     smtp_password = os.getenv('SMTP_PASSWORD')  # 网易邮箱授权码
     
-    print(f"邮件配置: server={smtp_server}, port={smtp_port}, username={smtp_username}, password={'***' if smtp_password else 'None'}")
-    
     if not smtp_username or not smtp_password:
         raise Exception('邮件服务配置不完整')
     
@@ -279,19 +277,12 @@ def send_email_verification_code(email, code):
     
     # 发送邮件
     try:
-        print(f"正在连接SMTP服务器: {smtp_server}:{smtp_port}")
         server = smtplib.SMTP(smtp_server, smtp_port)
-        print("SMTP连接成功，开始TLS加密")
-        server.starttls()
-        print("TLS加密成功，开始登录")
         server.login(smtp_username, smtp_password)
-        print("登录成功，开始发送邮件")
         text = msg.as_string()
         server.sendmail(smtp_username, email, text)
-        print("邮件发送成功")
         server.quit()
     except Exception as e:
-        print(f"邮件发送详细错误: {str(e)}")
         raise Exception(f'邮件发送失败: {str(e)}')
 
 

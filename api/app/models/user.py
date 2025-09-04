@@ -18,8 +18,8 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True, comment='用户唯一标识')
     username = db.Column(db.String(80), unique=True, nullable=False, index=True, comment='用户名，唯一且非空')
     email = db.Column(db.String(120), unique=True, nullable=True, index=True, comment='邮箱地址，唯一但可为空')
-    github = db.Column(db.String(100), unique=True, nullable=False, index=True, comment='GitHub用户名，唯一且非空')
-    wechat = db.Column(db.String(100), unique=True, nullable=False, index=True, comment='微信号，唯一且非空')
+    github = db.Column(db.String(100), unique=True, nullable=True, index=True, comment='GitHub用户名，唯一但可为空')
+    wechat = db.Column(db.String(100), unique=True, nullable=True, index=True, comment='微信号，唯一但可为空')
     
     # 注册方式
     registration_method = db.Column(db.Enum(RegistrationType), nullable=False, default=RegistrationType.EMAIL, comment='注册方式')
