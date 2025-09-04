@@ -31,9 +31,13 @@
                 v-model="loginForm.username"
                 placeholder="请输入您的用户名或邮箱地址"
                 class="form-input"
+                :class="{ 'error': usernameError }"
+                @blur="handleUsernameChange"
+                @input="usernameError = ''"
                 required
               />
             </div>
+            <div v-if="usernameError" class="error-message">{{ usernameError }}</div>
           </div>
 
           <!-- 密码输入 -->
@@ -50,6 +54,9 @@
                 v-model="loginForm.password"
                 placeholder="请输入您的密码"
                 class="form-input"
+                :class="{ 'error': passwordError }"
+                @blur="handlePasswordChange"
+                @input="passwordError = ''"
                 required
               />
               <button
@@ -70,6 +77,7 @@
                 </svg>
               </button>
             </div>
+            <div v-if="passwordError" class="error-message">{{ passwordError }}</div>
           </div>
 
           <!-- 用户协议 -->
@@ -115,14 +123,17 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { showToast } from '@/utils/toast'
 
 defineOptions({
   name: 'LoginPage',
 })
 
 const router = useRouter()
+const authStore = useAuthStore()
 
 // 表单数据
 const loginForm = ref({
@@ -133,56 +144,119 @@ const loginForm = ref({
 // 表单状态
 const showPassword = ref(false)
 const agreeTerms = ref(false)
-const isLoading = ref(false)
+
+// 计算属性
+const isLoading = computed(() => authStore.isLoading)
+
+// 表单验证状态
+const usernameError = ref('')
+const passwordError = ref('')
 
 // 切换密码显示
 const togglePassword = () => {
   showPassword.value = !showPassword.value
 }
 
+// 验证用户名/邮箱格式
+const validateUsername = (value) => {
+  if (!value) {
+    return '用户名或邮箱不能为空'
+  }
+  
+  // 如果包含@符号，验证邮箱格式
+  if (value.includes('@')) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(value)) {
+      return '邮箱格式不正确'
+    }
+  } else {
+    // 验证用户名格式（3-20位，字母数字下划线）
+    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/
+    if (!usernameRegex.test(value)) {
+      return '用户名格式不正确（3-20位字母数字下划线）'
+    }
+  }
+  
+  return ''
+}
+
+// 验证密码格式
+const validatePassword = (value) => {
+  if (!value) {
+    return '密码不能为空'
+  }
+  
+  if (value.length < 6 || value.length > 20) {
+    return '密码长度应为6-20位'
+  }
+  
+  // 必须包含字母和数字
+  const hasLetter = /[a-zA-Z]/.test(value)
+  const hasDigit = /\d/.test(value)
+  
+  if (!hasLetter || !hasDigit) {
+    return '密码必须包含字母和数字'
+  }
+  
+  return ''
+}
+
+// 实时验证用户名
+const handleUsernameChange = () => {
+  usernameError.value = validateUsername(loginForm.value.username)
+}
+
+// 实时验证密码
+const handlePasswordChange = () => {
+  passwordError.value = validatePassword(loginForm.value.password)
+}
+
 // 处理登录
 const handleLogin = async () => {
-  if (!loginForm.value.username || !loginForm.value.password) {
-    alert('请填写完整的登录信息')
+  // 表单验证
+  const usernameValidation = validateUsername(loginForm.value.username)
+  const passwordValidation = validatePassword(loginForm.value.password)
+  
+  usernameError.value = usernameValidation
+  passwordError.value = passwordValidation
+  
+  if (usernameValidation || passwordValidation) {
+    showToast({ message: '请检查输入信息', type: 'error' })
     return
   }
 
   if (!agreeTerms.value) {
-    alert('请先同意用户协议')
+    showToast({ message: '请先同意用户协议', type: 'warning' })
     return
   }
 
-  isLoading.value = true
-
   try {
-    console.log('登录信息:', loginForm.value)
+    const result = await authStore.login({
+      username: loginForm.value.username,
+      password: loginForm.value.password
+    })
 
-    // 模拟登录请求
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    // 登录成功后跳转
-    router.push('/')
+    if (result.success) {
+      // 登录成功，跳转到原始请求的页面或控制台页面
+      const redirect = router.currentRoute.value.query.redirect || '/console'
+      router.push(redirect)
+    }
   } catch (error) {
     console.error('登录失败:', error)
-    alert('登录失败，请重试')
-  } finally {
-    isLoading.value = false
   }
 }
 </script>
 
 <style scoped>
-/* 页面整体布局 - 白色背景，完全无滚动 */
+/* 页面整体布局 - 白色背景，支持滚动 */
 .login-page {
-  width: 100vw;
-  height: 100vh;
+  min-width: 100vw;
+  min-height: 100vh;
   background: #ffffff;
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  overflow: hidden;
-  position: fixed;
-  top: 0;
-  left: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -194,13 +268,14 @@ const handleLogin = async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 20px 20px 20px; /* 减少顶部间距，让登录区域往上移 */
-  margin-top: -40px; /* 进一步往上移 */
+  padding: 100px 20px 40px 20px; /* 为导航栏留出更多空间，底部增加更多空间 */
+  margin-top: 0; /* 移除向上偏移 */
+  min-height: calc(100vh - 60px); /* 确保最小高度 */
 }
 
 /* 品牌区域 - 在卡片上方 */
 .brand-section {
-  margin-bottom: 20px; /* 减少间距 */
+  margin-bottom: 20px;
 }
 
 .brand-logo {
@@ -294,6 +369,21 @@ const handleLogin = async () => {
   border-color: #3b82f6;
   background: white;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.form-input.error {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.error-message {
+  color: #ef4444;
+  font-size: 14px;
+  margin-top: 8px;
+  margin-left: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .form-input::placeholder {
@@ -487,10 +577,17 @@ const handleLogin = async () => {
 
 /* 响应式设计 */
 @media (max-width: 480px) {
+  .login-container {
+    padding: 80px 16px 30px 16px;
+    margin-top: 0;
+    min-height: calc(100vh - 60px);
+  }
+
   .login-card {
-    padding: 28px 20px; /* 移动端进一步减少内边距 */
-    margin: 0 16px;
+    padding: 28px 20px;
+    margin: 0;
     max-width: none;
+    width: 100%;
   }
 
   .brand-text {
@@ -505,35 +602,85 @@ const handleLogin = async () => {
     width: 32px;
     height: 32px;
   }
-
-  .login-container {
-    margin-top: -20px; /* 移动端往上移动更少 */
-  }
 }
 
 @media (max-width: 320px) {
   .login-card {
-    padding: 24px 16px; /* 小屏幕进一步减少内边距 */
+    padding: 24px 16px;
+  }
+
+  .login-container {
+    padding: 70px 12px 20px 12px;
   }
 }
 
-/* 确保在所有情况下都无滚动 */
-@media (max-height: 600px) {
+/* 低高度设备优化 - 支持滚动 */
+@media (max-height: 700px) {
   .login-container {
-    padding: 20px;
-    margin-top: -20px; /* 低屏幕时减少往上移的幅度 */
-  }
-
-  .login-card {
-    padding: 20px; /* 进一步压缩 */
+    justify-content: flex-start;
+    padding-top: 60px;
+    margin-top: 0;
   }
 
   .brand-section {
     margin-bottom: 16px;
   }
+}
+
+@media (max-height: 600px) {
+  .login-container {
+    padding: 20px;
+    margin-top: 0;
+  }
+
+  .login-card {
+    padding: 20px;
+  }
+
+  .brand-section {
+    margin-bottom: 12px;
+  }
 
   .login-title {
-    margin-bottom: 20px;
+    margin-bottom: 16px;
+    font-size: 18px;
+  }
+
+  .form-field {
+    margin-bottom: 14px;
+  }
+}
+
+@media (max-height: 500px) {
+  .login-container {
+    padding: 10px;
+  }
+
+  .login-card {
+    padding: 16px;
+  }
+
+  .brand-section {
+    margin-bottom: 8px;
+  }
+
+  .login-title {
+    margin-bottom: 12px;
+    font-size: 16px;
+  }
+
+  .form-field {
+    margin-bottom: 10px;
+  }
+
+  .field-label {
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
+  .form-input {
+    padding: 10px 10px 10px 36px;
+    font-size: 13px;
   }
 }
 </style>

@@ -31,9 +31,29 @@
                 v-model="registerForm.username"
                 placeholder="请输入用户名"
                 class="form-input"
+                :class="{
+                  'input-error': usernameCheckStatus === 'invalid',
+                  'input-success': usernameCheckStatus === 'valid'
+                }"
                 required
               />
+              <div v-if="usernameCheckStatus === 'checking'" class="input-status checking">
+                <svg class="status-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+              </div>
+              <div v-else-if="usernameCheckStatus === 'valid'" class="input-status success">
+                <svg class="status-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+              </div>
+              <div v-else-if="usernameCheckStatus === 'invalid'" class="input-status error">
+                <svg class="status-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                </svg>
+              </div>
             </div>
+            <div v-if="usernameErrorMessage" class="error-message">{{ usernameErrorMessage }}</div>
           </div>
 
           <!-- 密码输入 -->
@@ -48,10 +68,14 @@
               <input
                 :type="showPassword ? 'text' : 'password'"
                 v-model="registerForm.password"
-                placeholder="输入密码，最短 8 位，最长 20 位"
+                placeholder="输入密码，最短 6 位，最长 20 位"
                 class="form-input"
+                :class="{
+                  'input-error': passwordErrorMessage,
+                  'input-success': registerForm.password && !passwordErrorMessage
+                }"
                 required
-                minlength="8"
+                minlength="6"
                 maxlength="20"
               />
               <button
@@ -72,6 +96,7 @@
                 </svg>
               </button>
             </div>
+            <div v-if="passwordErrorMessage" class="error-message">{{ passwordErrorMessage }}</div>
           </div>
 
           <!-- 确认密码输入 -->
@@ -88,8 +113,22 @@
                 v-model="registerForm.confirmPassword"
                 placeholder="确认密码"
                 class="form-input"
+                :class="{
+                  'input-error': confirmPasswordErrorMessage,
+                  'input-success': registerForm.confirmPassword && !confirmPasswordErrorMessage && registerForm.password
+                }"
                 required
               />
+              <div v-if="registerForm.confirmPassword && !confirmPasswordErrorMessage && registerForm.password" class="input-status success">
+                <svg class="status-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                </svg>
+              </div>
+              <div v-else-if="confirmPasswordErrorMessage" class="input-status error">
+                <svg class="status-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                </svg>
+              </div>
               <button
                 type="button"
                 @click="toggleConfirmPassword"
@@ -108,6 +147,7 @@
                 </svg>
               </button>
             </div>
+            <div v-if="confirmPasswordErrorMessage" class="error-message">{{ confirmPasswordErrorMessage }}</div>
           </div>
 
           <!-- 邮箱输入 -->
@@ -124,17 +164,22 @@
                 v-model="registerForm.email"
                 placeholder="输入邮箱地址"
                 class="form-input"
+                :class="{
+                  'input-error': emailErrorMessage,
+                  'input-success': registerForm.email && !emailErrorMessage
+                }"
                 required
               />
               <button
                 type="button"
                 @click="sendVerificationCode"
                 class="verification-btn"
-                :disabled="!registerForm.email || isCodeSending"
+                :disabled="!registerForm.email || isCodeSending || countdown > 0"
               >
-                {{ isCodeSending ? '发送中...' : '获取验证码' }}
+                {{ isCodeSending ? '发送中...' : countdown > 0 ? `${countdown}s后重试` : '获取验证码' }}
               </button>
             </div>
+            <div v-if="emailErrorMessage" class="error-message">{{ emailErrorMessage }}</div>
           </div>
 
           <!-- 验证码输入 -->
@@ -193,8 +238,10 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { authAPI } from '@/utils/api'
+import toast from '@/utils/toast'
 
 defineOptions({
   name: 'RegisterPage',
@@ -217,6 +264,55 @@ const showConfirmPassword = ref(false)
 const agreeTerms = ref(false)
 const isLoading = ref(false)
 const isCodeSending = ref(false)
+const countdown = ref(0)
+const countdownTimer = ref(null)
+const usernameCheckStatus = ref('') // 'checking', 'valid', 'invalid', ''
+const usernameErrorMessage = ref('')
+const emailErrorMessage = ref('')
+const passwordErrorMessage = ref('')
+const confirmPasswordErrorMessage = ref('')
+
+// 监听用户名变化，进行实时检查
+watch(() => registerForm.value.username, async (newUsername) => {
+  if (newUsername && newUsername.length >= 3) {
+    await checkUsernameAvailability(newUsername)
+  } else {
+    usernameCheckStatus.value = ''
+    usernameErrorMessage.value = ''
+  }
+}, { debounce: 500 })
+
+// 监听邮箱变化，进行格式验证
+watch(() => registerForm.value.email, (newEmail) => {
+  if (newEmail) {
+    validateEmailFormat(newEmail)
+  } else {
+    emailErrorMessage.value = ''
+  }
+})
+
+// 监听确认密码变化，验证两次密码是否一致
+watch(() => registerForm.value.confirmPassword, (newConfirmPassword) => {
+  if (newConfirmPassword && registerForm.value.password) {
+    validatePasswordMatch(registerForm.value.password, newConfirmPassword)
+  } else {
+    confirmPasswordErrorMessage.value = ''
+  }
+})
+
+// 监听密码变化时也要检查确认密码
+watch(() => registerForm.value.password, (newPassword) => {
+  if (newPassword) {
+    validatePasswordFormat(newPassword)
+    // 如果确认密码已输入，重新验证匹配性
+    if (registerForm.value.confirmPassword) {
+      validatePasswordMatch(newPassword, registerForm.value.confirmPassword)
+    }
+  } else {
+    passwordErrorMessage.value = ''
+    confirmPasswordErrorMessage.value = ''
+  }
+})
 
 // 切换密码显示
 const togglePassword = () => {
@@ -228,26 +324,121 @@ const toggleConfirmPassword = () => {
   showConfirmPassword.value = !showConfirmPassword.value
 }
 
+// 检查用户名可用性
+const checkUsernameAvailability = async (username) => {
+  if (!username || username.length < 3) return
+  
+  usernameCheckStatus.value = 'checking'
+  usernameErrorMessage.value = ''
+  
+  try {
+    const result = await authAPI.checkUsername(username)
+    console.log('检查用户名结果:', result)
+    
+    if (result.success && result.data) {
+      if (result.data.available) {
+        usernameCheckStatus.value = 'valid'
+        usernameErrorMessage.value = ''
+      } else {
+        usernameCheckStatus.value = 'invalid'
+        usernameErrorMessage.value = result.message
+      }
+    } else {
+      usernameCheckStatus.value = 'invalid'
+      usernameErrorMessage.value = result.message || '检查用户名时发生错误'
+    }
+  } catch (error) {
+    console.error('检查用户名失败:', error)
+    usernameCheckStatus.value = 'invalid'
+    usernameErrorMessage.value = '检查用户名时发生错误'
+  }
+}
+
+// 验证邮箱格式
+const validateEmailFormat = (email) => {
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+  if (!emailRegex.test(email)) {
+    emailErrorMessage.value = '邮箱格式不正确'
+  } else {
+    emailErrorMessage.value = ''
+  }
+}
+
+// 验证密码格式（6-20位，包含字母和数字）
+const validatePasswordFormat = (password) => {
+  if (password.length < 6 || password.length > 20) {
+    passwordErrorMessage.value = '密码长度应在6-20位之间'
+    return false
+  }
+  
+  const hasLetter = /[a-zA-Z]/.test(password)
+  const hasDigit = /\d/.test(password)
+  
+  if (!hasLetter || !hasDigit) {
+    passwordErrorMessage.value = '密码必须包含字母和数字'
+    return false
+  }
+  
+  passwordErrorMessage.value = ''
+  return true
+}
+
+// 验证两次密码是否一致
+const validatePasswordMatch = (password, confirmPassword) => {
+  if (password !== confirmPassword) {
+    confirmPasswordErrorMessage.value = '两次输入的密码不一致'
+    return false
+  }
+  
+  confirmPasswordErrorMessage.value = ''
+  return true
+}
+
+// 开始倒计时
+const startCountdown = () => {
+  countdown.value = 60
+  countdownTimer.value = setInterval(() => {
+    countdown.value--
+    if (countdown.value <= 0) {
+      clearInterval(countdownTimer.value)
+      countdownTimer.value = null
+    }
+  }, 1000)
+}
+
 // 发送验证码
 const sendVerificationCode = async () => {
   if (!registerForm.value.email) {
-    alert('请先输入邮箱地址')
+    toast.warning('请先输入邮箱地址')
+    return
+  }
+
+  // 验证邮箱格式
+  if (emailErrorMessage.value) {
+    toast.warning('请输入正确的邮箱格式')
+    return
+  }
+
+  // 检查是否在倒计时中
+  if (countdown.value > 0) {
+    toast.warning(`请等待 ${countdown.value} 秒后再试`)
     return
   }
 
   isCodeSending.value = true
 
   try {
-    // 这里添加发送验证码的逻辑
-    console.log('发送验证码到:', registerForm.value.email)
+    const result = await authAPI.sendVerificationCode(registerForm.value.email)
 
-    // 模拟发送验证码请求
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    alert('验证码已发送到您的邮箱')
+    if (result.success) {
+      toast.success('验证码已发送到您的邮箱，请查收')
+      startCountdown() // 开始倒计时
+    } else {
+      toast.error(result.message || '发送验证码失败')
+    }
   } catch (error) {
     console.error('发送验证码失败:', error)
-    alert('发送验证码失败，请重试')
+    toast.error('发送验证码失败，请检查网络连接')
   } finally {
     isCodeSending.value = false
   }
@@ -263,57 +454,85 @@ const handleRegister = async () => {
     !registerForm.value.email ||
     !registerForm.value.verificationCode
   ) {
-    alert('请填写完整的注册信息')
+    toast.warning('请填写完整的注册信息')
     return
   }
 
-  if (registerForm.value.password !== registerForm.value.confirmPassword) {
-    alert('两次输入的密码不一致')
+  // 检查用户名状态
+  if (usernameCheckStatus.value !== 'valid') {
+    toast.warning(usernameErrorMessage.value || '请输入有效的用户名')
     return
   }
 
-  if (registerForm.value.password.length < 8 || registerForm.value.password.length > 20) {
-    alert('密码长度应在8-20位之间')
+  // 检查密码格式
+  if (!validatePasswordFormat(registerForm.value.password)) {
+    toast.warning(passwordErrorMessage.value || '密码格式不正确')
+    return
+  }
+
+  // 检查两次密码是否一致
+  if (!validatePasswordMatch(registerForm.value.password, registerForm.value.confirmPassword)) {
+    toast.warning(confirmPasswordErrorMessage.value || '两次输入的密码不一致')
+    return
+  }
+
+  // 检查邮箱格式
+  if (emailErrorMessage.value) {
+    toast.warning('请输入正确的邮箱格式')
     return
   }
 
   if (!agreeTerms.value) {
-    alert('请先同意用户协议')
+    toast.warning('请先同意用户协议')
     return
   }
 
   isLoading.value = true
 
   try {
-    console.log('注册信息:', registerForm.value)
+    const result = await authAPI.register({
+      username: registerForm.value.username,
+      password: registerForm.value.password,
+      email: registerForm.value.email,
+      verification_code: registerForm.value.verificationCode
+    })
 
-    // 模拟注册请求
-    await new Promise((resolve) => setTimeout(resolve, 1500))
-
-    alert('注册成功！')
-    // 注册成功后跳转到登录页面
-    router.push('/login')
+    if (result.success) {
+      toast.success('注册成功！即将跳转到登录页面', { duration: 2000 })
+      // 注册成功后跳转到登录页面
+      setTimeout(() => {
+        router.push('/login')
+      }, 2000)
+    } else {
+      toast.error(result.message || '注册失败，请重试')
+    }
   } catch (error) {
     console.error('注册失败:', error)
-    alert('注册失败，请重试')
+    toast.error('注册失败，请检查网络连接')
   } finally {
     isLoading.value = false
   }
 }
+
+// 组件卸载时清理定时器
+onUnmounted(() => {
+  if (countdownTimer.value) {
+    clearInterval(countdownTimer.value)
+    countdownTimer.value = null
+  }
+})
 </script>
 
 <style scoped>
-/* 页面整体布局 - 白色背景，完全无滚动 */
+/* 页面整体布局 - 白色背景，支持滚动 */
 .register-page {
-  width: 100vw;
-  height: 100vh;
+  min-width: 100vw;
+  min-height: 100vh;
   background: #ffffff;
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  overflow: hidden;
-  position: fixed;
-  top: 0;
-  left: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
 }
@@ -325,8 +544,9 @@ const handleRegister = async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 80px 20px 20px 20px; /* 为导航栏留出空间 */
-  margin-top: -40px; /* 向上偏移 */
+  padding: 100px 20px 40px 20px; /* 为导航栏留出更多空间，底部增加更多空间 */
+  margin-top: 0; /* 移除向上偏移 */
+  min-height: calc(100vh - 60px); /* 确保最小高度 */
 }
 
 /* 品牌区域 - 在卡片上方 */
@@ -475,6 +695,59 @@ const handleRegister = async () => {
   background: #9ca3af;
   cursor: not-allowed;
 }
+
+/* 输入框状态样式 */
+.input-error {
+  border-color: #ef4444 !important;
+  background: #fef2f2 !important;
+}
+
+.input-success {
+  border-color: #10b981 !important;
+  background: #f0fdf4 !important;
+}
+
+/* 错误消息样式 */
+ .error-message {
+   color: #ef4444;
+   font-size: 12px;
+   margin-top: 4px;
+   margin-left: 2px;
+ }
+ 
+ /* 输入状态指示器 */
+ .input-status {
+   position: absolute;
+   right: 12px;
+   top: 50%;
+   transform: translateY(-50%);
+   display: flex;
+   align-items: center;
+   justify-content: center;
+ }
+ 
+ .status-icon {
+   width: 16px;
+   height: 16px;
+ }
+ 
+ .input-status.checking .status-icon {
+   color: #6b7280;
+   animation: spin 1s linear infinite;
+ }
+ 
+ .input-status.success .status-icon {
+   color: #10b981;
+ }
+ 
+ .input-status.error .status-icon {
+   color: #ef4444;
+ }
+ 
+ @keyframes spin {
+   from { transform: rotate(0deg); }
+   to { transform: rotate(360deg); }
+ }
 
 /* 用户协议 */
 .form-options {
@@ -626,10 +899,17 @@ const handleRegister = async () => {
 
 /* 响应式设计 */
 @media (max-width: 480px) {
+  .register-container {
+    padding: 80px 16px 30px 16px;
+    margin-top: 0;
+    min-height: calc(100vh - 60px);
+  }
+
   .register-card {
     padding: 28px 20px;
-    margin: 0 16px;
+    margin: 0;
     max-width: none;
+    width: 100%;
   }
 
   .brand-text {
@@ -644,23 +924,35 @@ const handleRegister = async () => {
     width: 32px;
     height: 32px;
   }
-
-  .register-container {
-    margin-top: -20px;
-  }
 }
 
 @media (max-width: 320px) {
   .register-card {
     padding: 24px 16px;
   }
+
+  .register-container {
+    padding: 70px 12px 20px 12px;
+  }
 }
 
-/* 确保在所有情况下都无滚动 */
+/* 低高度设备优化 - 支持滚动 */
+@media (max-height: 700px) {
+  .register-container {
+    justify-content: flex-start;
+    padding-top: 60px;
+    margin-top: 0;
+  }
+
+  .brand-section {
+    margin-bottom: 16px;
+  }
+}
+
 @media (max-height: 600px) {
   .register-container {
     padding: 20px;
-    margin-top: -20px;
+    margin-top: 0;
   }
 
   .register-card {
@@ -668,11 +960,49 @@ const handleRegister = async () => {
   }
 
   .brand-section {
-    margin-bottom: 16px;
+    margin-bottom: 12px;
   }
 
   .register-title {
-    margin-bottom: 20px;
+    margin-bottom: 16px;
+    font-size: 18px;
+  }
+
+  .form-field {
+    margin-bottom: 14px;
+  }
+}
+
+@media (max-height: 500px) {
+  .register-container {
+    padding: 10px;
+  }
+
+  .register-card {
+    padding: 16px;
+  }
+
+  .brand-section {
+    margin-bottom: 8px;
+  }
+
+  .register-title {
+    margin-bottom: 12px;
+    font-size: 16px;
+  }
+
+  .form-field {
+    margin-bottom: 10px;
+  }
+
+  .field-label {
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
+  .form-input {
+    padding: 10px 10px 10px 36px;
+    font-size: 13px;
   }
 }
 </style>

@@ -51,37 +51,37 @@ def validate_password(password: str) -> Dict[str, Any]:
     errors = []
     score = 0
     
-    # 长度检查
-    if len(password) < 8:
-        errors.append('Password must be at least 8 characters long')
-    elif len(password) >= 8:
+    # 长度检查 (6-20位)
+    if len(password) < 6:
+        errors.append('密码长度至少需要6位')
+    elif len(password) > 20:
+        errors.append('密码长度不能超过20位')
+    elif len(password) >= 6:
         score += 1
         if len(password) >= 12:
             score += 1
     
-    # 包含小写字母
-    if re.search(r'[a-z]', password):
+    # 包含字母
+    has_letter = re.search(r'[a-zA-Z]', password)
+    if has_letter:
         score += 1
     else:
-        errors.append('Password must contain at least one lowercase letter')
-    
-    # 包含大写字母
-    if re.search(r'[A-Z]', password):
-        score += 1
-    else:
-        errors.append('Password must contain at least one uppercase letter')
+        errors.append('密码必须包含字母')
     
     # 包含数字
-    if re.search(r'\d', password):
+    has_digit = re.search(r'\d', password)
+    if has_digit:
         score += 1
     else:
-        errors.append('Password must contain at least one digit')
+        errors.append('密码必须包含数字')
     
-    # 包含特殊字符
+    # 可选：包含大写字母（加分项）
+    if re.search(r'[A-Z]', password):
+        score += 1
+    
+    # 可选：包含特殊字符（加分项）
     if re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
         score += 1
-    else:
-        errors.append('Password must contain at least one special character')
     
     # 检查常见弱密码
     weak_passwords = [
@@ -139,7 +139,7 @@ def validate_username(username: str) -> Dict[str, Any]:
     if not username or not isinstance(username, str):
         return {
             'valid': False,
-            'message': 'Username is required'
+            'message': '用户名不能为空'
         }
     
     username = username.strip()
@@ -148,35 +148,25 @@ def validate_username(username: str) -> Dict[str, Any]:
     if len(username) < 3:
         return {
             'valid': False,
-            'message': 'Username must be at least 3 characters long'
+            'message': '用户名至少需要3个字符'
         }
     
     if len(username) > 50:
         return {
             'valid': False,
-            'message': 'Username must be no more than 50 characters long'
+            'message': '用户名不能超过50个字符'
         }
     
     # 字符检查
     if not re.match(r'^[a-zA-Z0-9_]+$', username):
         return {
             'valid': False,
-            'message': 'Username can only contain letters, numbers and underscores'
+            'message': '用户名只能包含字母、数字和下划线'
         }
     
-    # 不能以数字开头
-    if username[0].isdigit():
-        return {
-            'valid': False,
-            'message': 'Username cannot start with a number'
-        }
+    # 移除数字开头的限制，允许数字开头的用户名
     
-    # 不能全是数字
-    if username.isdigit():
-        return {
-            'valid': False,
-            'message': 'Username cannot be all numbers'
-        }
+    # 移除全数字限制，允许纯数字用户名
     
     # 检查保留用户名
     reserved_usernames = [
@@ -188,12 +178,12 @@ def validate_username(username: str) -> Dict[str, Any]:
     if username.lower() in reserved_usernames:
         return {
             'valid': False,
-            'message': 'Username is reserved'
+            'message': '该用户名为系统保留用户名'
         }
     
     return {
         'valid': True,
-        'message': 'Username is valid'
+        'message': '用户名可用'
     }
 
 

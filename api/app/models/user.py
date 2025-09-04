@@ -1,4 +1,5 @@
 from datetime import datetime
+import pytz
 from enum import Enum
 from werkzeug.security import generate_password_hash, check_password_hash
 from app import db
@@ -31,11 +32,15 @@ class User(db.Model):
     verification_code_expires = db.Column(db.DateTime, nullable=True, comment='验证码过期时间')
     
     # 时间戳
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, comment='创建时间')
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False, comment='更新时间')
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(pytz.timezone('Asia/Shanghai')), nullable=False, comment='创建时间')
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(pytz.timezone('Asia/Shanghai')), onupdate=lambda: datetime.now(pytz.timezone('Asia/Shanghai')), nullable=False, comment='更新时间')
+    last_login = db.Column(db.DateTime, nullable=True, comment='最后登录时间')
     
     # 软删除
     is_deleted = db.Column(db.Boolean, default=False, nullable=False, index=True, comment='是否已删除（软删除）')
+    
+    # 激活状态
+    is_activated = db.Column(db.Boolean, default=False, nullable=False, index=True, comment='是否已激活')
     
     # 保留字段
     reserved_field_1 = db.Column(db.String(255), nullable=True, comment='保留字段1')
@@ -78,6 +83,14 @@ class User(db.Model):
         """恢复已删除的用户"""
         self.is_deleted = False
     
+    def activate(self):
+        """激活用户"""
+        self.is_activated = True
+    
+    def deactivate(self):
+        """停用用户"""
+        self.is_activated = False
+    
     def to_dict(self):
         """转换为字典格式"""
         return {
@@ -90,6 +103,7 @@ class User(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
             'is_deleted': self.is_deleted,
+            'is_activated': self.is_activated,
         }
     
     @classmethod

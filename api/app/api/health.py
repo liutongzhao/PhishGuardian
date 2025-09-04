@@ -22,4 +22,7 @@ def health_check():
 @health_bp.route('/ping', methods=['GET'])
 def ping():
     """简单的ping接口"""
-    return jsonify({'message': 'pong'})
+    return api_response(
+        success=True,
+        message='pong'
+    )

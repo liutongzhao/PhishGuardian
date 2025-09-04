@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from flask_cors import CORS
 from config.config import config
+from app.utils.jwt_utils import JWTUtils
 import os
 
 # 初始化扩展
@@ -25,10 +26,13 @@ def create_app(config_name=None):
     db.init_app(app)
     migrate.init_app(app, db)
     
+    # 初始化JWT
+    JWTUtils.init_app(app)
+    
     # 配置CORS
     CORS(app, resources={
         r"/api/*": {
-            "origins": ["http://localhost:3000", "http://localhost:5173"],
+            "origins": ["http://localhost:3000", "http://localhost:5173", "http://localhost:5174"],
             "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
             "allow_headers": ["Content-Type", "Authorization"]
         }
@@ -36,8 +40,14 @@ def create_app(config_name=None):
     
     # 注册蓝图
     from app.api import blueprints
-    for blueprint in blueprints:
-        app.register_blueprint(blueprint, url_prefix='/api/v1')
+    from app.api.health import health_bp
+    from app.api.auth import auth_bp
+    
+    # 注册健康检查蓝图
+    app.register_blueprint(health_bp, url_prefix='/api')
+    
+    # 注册认证蓝图
+    app.register_blueprint(auth_bp, url_prefix='/api/auth')
     
     # 创建数据库表
     with app.app_context():

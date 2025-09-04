@@ -1,4 +1,45 @@
-<script setup></script>
+<script setup>
+import { computed, ref } from 'vue'
+import { useAuthStore } from '@/stores/auth'
+import { useRouter } from 'vue-router'
+
+const authStore = useAuthStore()
+const router = useRouter()
+const showUserDropdown = ref(false)
+
+// 计算属性
+const isAuthenticated = computed(() => authStore.isAuthenticated)
+const currentUser = computed(() => authStore.user)
+
+// 切换用户下拉菜单
+const toggleUserDropdown = () => {
+  showUserDropdown.value = !showUserDropdown.value
+}
+
+// 关闭下拉菜单
+const closeUserDropdown = () => {
+  showUserDropdown.value = false
+}
+
+// 处理退出登录
+const handleLogout = async () => {
+  closeUserDropdown()
+  await authStore.logout()
+  router.push('/')
+}
+
+// 点击外部关闭下拉菜单
+const handleClickOutside = (event) => {
+  if (!event.target.closest('.user-dropdown-container')) {
+    closeUserDropdown()
+  }
+}
+
+// 监听全局点击事件
+if (typeof window !== 'undefined') {
+  document.addEventListener('click', handleClickOutside)
+}
+</script>
 
 <template>
   <div class="app">
@@ -129,8 +170,79 @@
 
         <!-- 用户信息/登录区域 -->
         <div class="user-section">
+          <!-- 已登录状态 -->
+          <div v-if="isAuthenticated" class="user-dropdown-container">
+            <button class="user-info-btn" @click="toggleUserDropdown">
+              <div class="user-avatar">
+                <span class="avatar-text">{{ currentUser?.username?.charAt(0)?.toUpperCase() || 'U' }}</span>
+              </div>
+              <span class="username">{{ currentUser?.username || '用户' }}</span>
+              <svg class="dropdown-arrow" :class="{ 'arrow-up': showUserDropdown }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9" />
+              </svg>
+            </button>
+            
+            <!-- 用户下拉菜单 -->
+            <div v-if="showUserDropdown" class="user-dropdown-menu">
+              <div class="dropdown-header">
+                <div class="user-info">
+                  <div class="user-avatar large">
+                    <span class="avatar-text">{{ currentUser?.username?.charAt(0)?.toUpperCase() || 'U' }}</span>
+                  </div>
+                  <div class="user-details">
+                    <div class="user-name">{{ currentUser?.username || '用户' }}</div>
+                    <div class="user-email">{{ currentUser?.email || '' }}</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="dropdown-divider"></div>
+              
+              <div class="dropdown-menu-items">
+                <router-link to="/console" class="dropdown-item" @click="closeUserDropdown">
+                  <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="7" height="9" rx="1" />
+                    <rect x="14" y="3" width="7" height="5" rx="1" />
+                    <rect x="14" y="12" width="7" height="9" rx="1" />
+                    <rect x="3" y="16" width="7" height="5" rx="1" />
+                  </svg>
+                  <span>控制台</span>
+                </router-link>
+                
+                <a href="#" class="dropdown-item" @click="closeUserDropdown">
+                  <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                  <span>个人设置</span>
+                </a>
+                
+                <a href="#" class="dropdown-item" @click="closeUserDropdown">
+                  <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                  </svg>
+                  <span>账户设置</span>
+                </a>
+              </div>
+              
+              <div class="dropdown-divider"></div>
+              
+              <div class="dropdown-menu-items">
+                <button class="dropdown-item logout-item" @click="handleLogout">
+                  <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
+                  <span>退出登录</span>
+                </button>
+              </div>
+            </div>
+          </div>
+          
           <!-- 未登录状态 -->
-          <div class="auth-buttons">
+          <div v-else class="auth-buttons">
             <div class="auth-button-group">
               <router-link to="/login" class="auth-btn login-btn"> 登录 </router-link>
               <router-link to="/register" class="auth-btn register-btn"> 注册 </router-link>
@@ -368,6 +480,165 @@
 
 .register-btn:hover {
   background: #40a9ff;
+}
+
+/* 用户下拉菜单样式 */
+.user-dropdown-container {
+  position: relative;
+}
+
+.user-info-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  color: #374151;
+}
+
+.user-info-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.user-avatar.large {
+  width: 40px;
+  height: 40px;
+}
+
+.avatar-text {
+  color: white;
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.user-avatar.large .avatar-text {
+  font-size: 16px;
+}
+
+.username {
+  font-weight: 500;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown-arrow {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.2s ease;
+}
+
+.dropdown-arrow.arrow-up {
+  transform: rotate(180deg);
+}
+
+.user-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 280px;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  z-index: 1001;
+  overflow: hidden;
+}
+
+.dropdown-header {
+  padding: 16px;
+  background: #f9fafb;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.user-name {
+  font-weight: 600;
+  font-size: 16px;
+  color: #111827;
+  margin-bottom: 2px;
+}
+
+.user-email {
+  font-size: 14px;
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 0;
+}
+
+.dropdown-menu-items {
+  padding: 8px 0;
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 16px;
+  background: none;
+  border: none;
+  text-decoration: none;
+  color: #374151;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background: #f3f4f6;
+}
+
+.dropdown-item.logout-item {
+  color: #dc2626;
+}
+
+.dropdown-item.logout-item:hover {
+  background: #fef2f2;
+}
+
+.item-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.dropdown-item.logout-item .item-icon {
+  color: #dc2626;
 }
 
 /* 原用户样式保留但隐藏 */

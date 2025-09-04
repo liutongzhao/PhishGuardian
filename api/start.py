@@ -46,8 +46,7 @@ def run(env, host, port, debug):
     os.environ['FLASK_ENV'] = env
     
     # 创建应用
-    config_class = get_config_class(env)
-    app = create_app(config_class)
+    app = create_app(env)
     
     # 启动应用
     click.echo(f'启动PhishGuardian API服务...')
