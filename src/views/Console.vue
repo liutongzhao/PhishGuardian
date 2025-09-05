@@ -96,6 +96,26 @@
             </svg>
             <span class="nav-text">邮件助手</span>
           </router-link>
+
+          <router-link
+            to="/console/email-detection"
+            class="nav-item"
+            :class="{ active: $route.path.includes('email-detection') }"
+          >
+            <svg
+              class="nav-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M12 2L2 7l10 5 10-5-10-5z" />
+              <path d="M2 17l10 5 10-5" />
+              <path d="M2 12l10 5 10-5" />
+            </svg>
+            <span class="nav-text">邮件检测</span>
+          </router-link>
+
         </nav>
       </aside>
 
@@ -271,6 +291,8 @@ function toggleSidebar() {
 .nav-item.active[href*='email-assistant'] {
   color: #d12323;
 }
+
+
 
 .nav-icon {
   width: 18px;

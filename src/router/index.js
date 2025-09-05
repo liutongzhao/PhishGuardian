@@ -9,6 +9,7 @@ import Dashboard from '../views/console/Dashboard.vue'
 import EmailBind from '../views/console/EmailBind.vue'
 import EmailView from '../views/console/EmailView.vue'
 import EmailAssistant from '../views/console/EmailAssistant.vue'
+import EmailDetection from '../views/console/EmailDetection.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -59,6 +60,13 @@ const router = createRouter({
           component: EmailAssistant,
           meta: { requiresAuth: true },
         },
+        {
+          path: 'email-detection',
+          name: 'EmailDetection',
+          component: EmailDetection,
+          meta: { requiresAuth: true },
+        },
+
       ],
     },
   ],
