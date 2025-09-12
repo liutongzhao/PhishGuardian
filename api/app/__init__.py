@@ -4,11 +4,13 @@ from flask_migrate import Migrate
 from flask_cors import CORS
 from config.config import config
 from app.utils.jwt_utils import JWTUtils
+from app.utils.scheduler import scheduler
 import os
 
 # 初始化扩展
 db = SQLAlchemy()
 migrate = Migrate()
+socketio = None
 
 
 def create_app(config_name=None):
@@ -28,6 +30,14 @@ def create_app(config_name=None):
     
     # 初始化JWT
     JWTUtils.init_app(app)
+    
+    # 初始化定时任务调度器
+    scheduler.init_app(app)
+    
+    # 初始化WebSocket服务
+    from app.services.websocket_service import WebSocketService
+    global socketio
+    socketio = WebSocketService.init_app(app)
     
     # 配置CORS
     CORS(app, resources={

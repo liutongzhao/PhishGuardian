@@ -51,7 +51,7 @@ class PaginationHelper:
                 }
             }
         except Exception as e:
-            logger.error(f'Pagination error: {str(e)}')
+            print(f'Pagination error: {str(e)}')
             return {
                 'items': [],
                 'pagination': {
@@ -287,7 +287,7 @@ class DatabaseHelper:
             db.session.commit()
             return True, None
         except Exception as e:
-            logger.error(f'Database commit error: {str(e)}')
+            print(f'Database commit error: {str(e)}')
             if rollback_on_error:
                 db.session.rollback()
             return False, str(e)
@@ -327,7 +327,7 @@ class DatabaseHelper:
             return True, inserted_count, None
             
         except Exception as e:
-            logger.error(f'Bulk insert error: {str(e)}')
+            print(f'Bulk insert error: {str(e)}')
             db.session.rollback()
             return False, 0, str(e)
     
@@ -368,7 +368,7 @@ class DatabaseHelper:
             return True, updated_count, None
             
         except Exception as e:
-            logger.error(f'Bulk update error: {str(e)}')
+            print(f'Bulk update error: {str(e)}')
             db.session.rollback()
             return False, 0, str(e)
     
@@ -409,7 +409,7 @@ class DatabaseHelper:
             return stats
             
         except Exception as e:
-            logger.error(f'Get table stats error: {str(e)}')
+            print(f'Get table stats error: {str(e)}')
             return {
                 'total_count': 0,
                 'table_name': model_class.__tablename__,
@@ -445,7 +445,7 @@ class DatabaseHelper:
                 return True, result.rowcount, None
                 
         except Exception as e:
-            logger.error(f'Raw query error: {str(e)}')
+            print(f'Raw query error: {str(e)}')
             db.session.rollback()
             return False, None, str(e)
     
@@ -477,10 +477,10 @@ class DatabaseHelper:
             
             db.session.commit()
             
-            logger.info(f'Cleaned up {deleted_count} old records from {model_class.__tablename__}')
+            print(f'Cleaned up {deleted_count} old records from {model_class.__tablename__}')
             return True, deleted_count, None
             
         except Exception as e:
-            logger.error(f'Cleanup old records error: {str(e)}')
+            print(f'Cleanup old records error: {str(e)}')
             db.session.rollback()
             return False, 0, str(e)

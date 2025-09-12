@@ -76,18 +76,42 @@
                 </td>
                 <td class="authcode-col">
                   <div class="authcode-content">
-                    <span class="auth-text" :class="{ 'auth-visible': email.showAuthCode }">{{ email.showAuthCode ? email.auth_code : maskAuthCode(email.auth_code) }}</span>
-                    <button class="view-btn" title="查看" @click="toggleAuthCodeVisibility(email.id)">
-                      <svg v-if="!email.showAuthCode" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <span class="auth-text" :class="{ 'auth-visible': email.showAuthCode }">{{
+                      email.showAuthCode ? email.auth_code : maskAuthCode(email.auth_code)
+                    }}</span>
+                    <button
+                      class="view-btn"
+                      title="查看"
+                      @click="toggleAuthCodeVisibility(email.id)"
+                    >
+                      <svg
+                        v-if="!email.showAuthCode"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                         <circle cx="12" cy="12" r="3" />
                       </svg>
-                      <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                        <line x1="1" y1="1" x2="23" y2="23"/>
+                      <svg
+                        v-else
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path
+                          d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
+                        />
+                        <line x1="1" y1="1" x2="23" y2="23" />
                       </svg>
                     </button>
-                    <button class="copy-btn" title="复制授权码" @click="copyToClipboard(email.auth_code)">
+                    <button
+                      class="copy-btn"
+                      title="复制授权码"
+                      @click="copyToClipboard(email.auth_code)"
+                    >
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
                         <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
@@ -97,9 +121,9 @@
                 </td>
                 <td class="status-col">
                   <label class="status-switch">
-                    <input 
-                      type="checkbox" 
-                      :checked="email.is_active" 
+                    <input
+                      type="checkbox"
+                      :checked="email.is_active"
                       @change="toggleBindingStatus(email.id, $event.target.checked)"
                       class="switch-input"
                     />
@@ -144,18 +168,21 @@
             第 {{ getStartIndex() }} - {{ getEndIndex() }} 条，共 {{ pagination.total }} 条
           </span>
           <div class="page-controls">
-            <button 
-              class="page-btn" 
+            <button
+              class="page-btn"
               :disabled="pagination.current_page <= 1"
               @click="changePage(pagination.current_page - 1)"
-            >&lt;</button>
+            >
+              &lt;
+            </button>
             <span class="current-page">{{ pagination.current_page }}</span>
-            <button 
-              class="page-btn" 
+            <button
+              class="page-btn"
               :disabled="pagination.current_page >= pagination.total_pages"
               @click="changePage(pagination.current_page + 1)"
-            >&gt;</button>
-
+            >
+              &gt;
+            </button>
           </div>
         </div>
       </div>
@@ -180,11 +207,18 @@
               <!-- 邮箱类型选择 -->
               <div class="form-field">
                 <label class="field-label">邮箱类型</label>
-                <select v-model="bindForm.type" class="form-select" :disabled="isLoadingProviders" @change="validateEmail">
-                  <option value="">{{ isLoadingProviders ? '加载中...' : '请选择邮箱类型' }}</option>
-                  <option 
-                    v-for="provider in emailProviders" 
-                    :key="provider.id" 
+                <select
+                  v-model="bindForm.type"
+                  class="form-select"
+                  :disabled="isLoadingProviders"
+                  @change="validateEmail"
+                >
+                  <option value="">
+                    {{ isLoadingProviders ? '加载中...' : '请选择邮箱类型' }}
+                  </option>
+                  <option
+                    v-for="provider in emailProviders"
+                    :key="provider.id"
                     :value="provider.name"
                   >
                     {{ provider.display_name }}
@@ -201,7 +235,7 @@
                   v-model="bindForm.email"
                   placeholder="请输入邮箱地址"
                   class="form-input"
-                  :class="{ 'error': formErrors.email }"
+                  :class="{ error: formErrors.email }"
                   @blur="validateEmail"
                   @input="formErrors.email = ''"
                   required
@@ -217,7 +251,7 @@
                   v-model="bindForm.authCode"
                   placeholder="请输入邮箱授权码"
                   class="form-input"
-                  :class="{ 'error': formErrors.authCode }"
+                  :class="{ error: formErrors.authCode }"
                   @input="formErrors.authCode = ''"
                   required
                 />
@@ -283,7 +317,7 @@ const bindForm = ref({
 const formErrors = ref({
   email: '',
   authCode: '',
-  type: ''
+  type: '',
 })
 
 // 邮箱列表数据
@@ -295,7 +329,7 @@ const pagination = ref({
   current_page: 1,
   per_page: 10,
   total: 0,
-  total_pages: 0
+  total_pages: 0,
 })
 
 // 确认对话框
@@ -303,7 +337,7 @@ const showConfirmDialog = ref(false)
 const confirmDialogData = ref({
   title: '',
   message: '',
-  onConfirm: null
+  onConfirm: null,
 })
 
 // 邮件厂商列表
@@ -321,27 +355,27 @@ const closeModal = () => {
   formErrors.value = {
     email: '',
     authCode: '',
-    type: ''
+    type: '',
   }
 }
 
 // 邮箱格式验证
 const validateEmail = () => {
   const email = bindForm.value.email.trim()
-  const selectedProvider = emailProviders.value.find(p => p.name === bindForm.value.type)
-  
+  const selectedProvider = emailProviders.value.find((p) => p.name === bindForm.value.type)
+
   if (!email) {
     formErrors.value.email = '请输入邮箱地址'
     return false
   }
-  
+
   // 基本邮箱格式验证
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(email)) {
     formErrors.value.email = '请输入有效的邮箱地址'
     return false
   }
-  
+
   // 验证邮箱后缀是否匹配选中的厂商
   if (selectedProvider && selectedProvider.email_suffix) {
     if (!email.toLowerCase().endsWith(selectedProvider.email_suffix.toLowerCase())) {
@@ -349,7 +383,7 @@ const validateEmail = () => {
       return false
     }
   }
-  
+
   formErrors.value.email = ''
   return true
 }
@@ -357,7 +391,7 @@ const validateEmail = () => {
 // 表单验证
 const validateForm = () => {
   let isValid = true
-  
+
   // 验证邮箱类型
   if (!bindForm.value.type) {
     formErrors.value.type = '请选择邮箱类型'
@@ -365,12 +399,12 @@ const validateForm = () => {
   } else {
     formErrors.value.type = ''
   }
-  
+
   // 验证邮箱地址
   if (!validateEmail()) {
     isValid = false
   }
-  
+
   // 验证授权码
   if (!bindForm.value.authCode.trim()) {
     formErrors.value.authCode = '请输入授权码'
@@ -378,7 +412,7 @@ const validateForm = () => {
   } else {
     formErrors.value.authCode = ''
   }
-  
+
   return isValid
 }
 
@@ -393,7 +427,7 @@ const handleBind = async () => {
 
   try {
     // 获取选中的邮箱厂商
-    const selectedProvider = emailProviders.value.find(p => p.name === bindForm.value.type)
+    const selectedProvider = emailProviders.value.find((p) => p.name === bindForm.value.type)
     if (!selectedProvider) {
       showToast({ message: '请选择有效的邮箱厂商', type: 'error' })
       return
@@ -403,7 +437,7 @@ const handleBind = async () => {
     const response = await api.post('/email/bindings', {
       email: bindForm.value.email.trim().toLowerCase(),
       auth_code: bindForm.value.authCode.trim(),
-      provider_id: selectedProvider.id
+      provider_id: selectedProvider.id,
     })
 
     if (response.success) {
@@ -412,12 +446,20 @@ const handleBind = async () => {
       // 刷新邮箱列表
       await fetchEmailBindings()
     } else {
-      const errorMessage = (response.message && typeof response.message === 'string') ? response.message : '绑定失败，请重试'
+      const errorMessage =
+        response.message && typeof response.message === 'string'
+          ? response.message
+          : '绑定失败，请重试'
       showToast({ message: errorMessage, type: 'error' })
     }
   } catch (error) {
     console.error('绑定失败:', error)
-    if (error.response && error.response.data && error.response.data.message && typeof error.response.data.message === 'string') {
+    if (
+      error.response &&
+      error.response.data &&
+      error.response.data.message &&
+      typeof error.response.data.message === 'string'
+    ) {
       showToast({ message: error.response.data.message, type: 'error' })
     } else {
       showToast({ message: '网络错误，请重试', type: 'error' })
@@ -435,7 +477,10 @@ const fetchEmailProviders = async () => {
     if (response.success) {
       emailProviders.value = response.data.providers || []
     } else {
-      const errorMessage = (response.message && typeof response.message === 'string') ? response.message : '获取邮件厂商列表失败'
+      const errorMessage =
+        response.message && typeof response.message === 'string'
+          ? response.message
+          : '获取邮件厂商列表失败'
       showToast({ message: errorMessage, type: 'error' })
     }
   } catch (error) {
@@ -453,26 +498,29 @@ const fetchEmailBindings = async (page = 1, perPage = pagination.value.per_page)
     const response = await api.get('/email/bindings', {
       params: {
         page: page,
-        per_page: perPage
-      }
+        per_page: perPage,
+      },
     })
     if (response.success) {
       const bindings = response.data.bindings || []
       // 为每个绑定添加授权码可见性状态
-      emailList.value = bindings.map(binding => ({
+      emailList.value = bindings.map((binding) => ({
         ...binding,
-        showAuthCode: false
+        showAuthCode: false,
       }))
-      
+
       // 更新分页信息
       pagination.value = {
         current_page: response.data.current_page || 1,
         per_page: response.data.per_page || 20,
         total: response.data.total || 0,
-        total_pages: response.data.total_pages || 0
+        total_pages: response.data.total_pages || 0,
       }
     } else {
-      const errorMessage = (response.message && typeof response.message === 'string') ? response.message : '获取邮箱绑定列表失败'
+      const errorMessage =
+        response.message && typeof response.message === 'string'
+          ? response.message
+          : '获取邮箱绑定列表失败'
       showToast({ message: errorMessage, type: 'error' })
     }
   } catch (error) {
@@ -488,7 +536,7 @@ const deleteBinding = (bindingId) => {
   confirmDialogData.value = {
     title: '删除确认',
     message: '确定要删除这个邮箱绑定吗？删除后将无法恢复。',
-    onConfirm: () => performDelete(bindingId)
+    onConfirm: () => performDelete(bindingId),
   }
   showConfirmDialog.value = true
 }
@@ -501,7 +549,8 @@ const performDelete = async (bindingId) => {
       showToast({ message: '删除成功', type: 'success' })
       await fetchEmailBindings()
     } else {
-      const errorMessage = (response.message && typeof response.message === 'string') ? response.message : '删除失败'
+      const errorMessage =
+        response.message && typeof response.message === 'string' ? response.message : '删除失败'
       showToast({ message: errorMessage, type: 'error' })
     }
   } catch (error) {
@@ -514,21 +563,22 @@ const performDelete = async (bindingId) => {
 const toggleBindingStatus = async (bindingId, isActive) => {
   try {
     const response = await api.put(`/email/bindings/${bindingId}/status`, {
-      is_active: isActive
+      is_active: isActive,
     })
-    
+
     if (response.success) {
-      showToast({ 
-        message: isActive ? '邮箱已启用' : '邮箱已禁用', 
-        type: 'success' 
+      showToast({
+        message: isActive ? '邮箱已启用' : '邮箱已禁用',
+        type: 'success',
       })
       // 更新本地数据
-      const binding = emailList.value.find(email => email.id === bindingId)
+      const binding = emailList.value.find((email) => email.id === bindingId)
       if (binding) {
         binding.is_active = isActive
       }
     } else {
-      const errorMessage = (response.message && typeof response.message === 'string') ? response.message : '状态更新失败'
+      const errorMessage =
+        response.message && typeof response.message === 'string' ? response.message : '状态更新失败'
       showToast({ message: errorMessage, type: 'error' })
       // 恢复开关状态
       await fetchEmailBindings()
@@ -546,15 +596,6 @@ onMounted(() => {
   fetchEmailProviders()
   fetchEmailBindings()
 })
-
-const getStatusText = (status) => {
-  const statusMap = {
-    active: '已启用',
-    inactive: '未激活',
-    expired: '已过期',
-  }
-  return statusMap[status] || '未知'
-}
 
 // 授权码掩码显示
 const maskAuthCode = (authCode) => {
@@ -587,13 +628,13 @@ const formatDate = (dateString) => {
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
   })
 }
 
 // 切换授权码可见性
 const toggleAuthCodeVisibility = (emailId) => {
-  const email = emailList.value.find(e => e.id === emailId)
+  const email = emailList.value.find((e) => e.id === emailId)
   if (email) {
     email.showAuthCode = !email.showAuthCode
   }
@@ -879,7 +920,8 @@ const handleCancel = () => {
 
 /* 邮箱地址列 */
 .email-col {
-  font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  font-family:
+    'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
   font-size: 14px;
   color: #374151;
   font-weight: 500;
@@ -928,7 +970,8 @@ const handleCancel = () => {
 }
 
 .auth-text {
-  font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  font-family:
+    'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
   font-size: 13px;
   color: #6b7280;
   font-weight: 500;
@@ -951,7 +994,8 @@ const handleCancel = () => {
 }
 
 .imap-text {
-  font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  font-family:
+    'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
   font-size: 13px;
   color: #6b7280;
   font-weight: 500;
@@ -967,7 +1011,8 @@ const handleCancel = () => {
 }
 
 .smtp-text {
-  font-family: 'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  font-family:
+    'SF Mono', 'Monaco', 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
   font-size: 13px;
   color: #6b7280;
   font-weight: 500;
@@ -1150,7 +1195,9 @@ const handleCancel = () => {
   border-radius: 16px;
   width: 90%;
   max-width: 520px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
   position: relative;
   z-index: 1000000 !important;
   pointer-events: auto !important;
@@ -1405,8 +1452,12 @@ const handleCancel = () => {
 }
 
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 .loading-row {
@@ -1472,7 +1523,9 @@ const handleCancel = () => {
 }
 
 .switch-input:focus + .switch-slider {
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1), 0 0 0 3px rgba(139, 92, 246, 0.2);
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.1),
+    0 0 0 3px rgba(139, 92, 246, 0.2);
 }
 
 .status-switch:hover .switch-slider {

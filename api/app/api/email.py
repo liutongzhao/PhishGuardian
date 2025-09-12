@@ -2,9 +2,16 @@ from flask import Blueprint, request, jsonify
 from app.utils import api_response
 from app.models.email_provider import EmailProvider
 from app.models.user_email_binding import UserEmailBinding
+from app.models.email import Email, EmailDetectionStatus
+from app.models.email_detection_detail import EmailDetectionDetail
 from app.services.email_binding_service import EmailBindingService
+from app.services.email_fetch_service import EmailFetchService
+from app.services.email_detection_service import EmailDetectionService
 from app.utils.jwt_utils import token_required
 from app import db
+import logging
+
+logger = logging.getLogger(__name__)
 
 # 创建邮箱管理蓝图
 email_bp = Blueprint('email', __name__)
@@ -34,6 +41,185 @@ def get_email_providers(current_user):
         return api_response(
             success=False,
             message=f'服务器错误: {str(e)}'
+        )
+
+
+
+
+
+@email_bp.route('/fetch', methods=['GET'])
+def fetch_emails():
+    """简单的邮件获取接口"""
+    try:
+        result = EmailFetchService.fetch_emails()
+        
+        return jsonify({
+            'success': True,
+            'message': result['message']
+        }), 200
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'邮件获取失败: {str(e)}'
+        }), 500
+
+
+
+
+
+@email_bp.route('/<int:email_id>/start-detection', methods=['POST'])
+@token_required
+def start_email_detection(current_user, email_id):
+    """开始检测邮件"""
+    try:
+        # 获取邮件信息
+        email = Email.query.get(email_id)
+        if not email:
+            return api_response(
+                success=False,
+                message='邮件不存在'
+            )
+        
+        # 设置邮件检测状态为检测中
+        email.detection_status = EmailDetectionStatus.DETECTING.value
+        
+        # 初始化检测权重
+        result = EmailDetectionService.initialize_detection_weights(email_id)
+        
+        if result['success']:
+            # 设置检测阶段为第二阶段
+            detail = EmailDetectionDetail.find_by_email_id(email_id)
+            if detail:
+                detail.detection_stage = 2
+                db.session.add(detail)
+            
+            # 提交数据库事务
+            db.session.commit()
+            
+            # 启动异步检测任务
+            from app.services.async_detection_service import async_detection_service
+            from app.services.detection_agents import detection_agents
+            from app.models.email_detection_detail import DetectionStatus
+            
+            # 获取邮件数据
+            email = Email.query.get(email_id)
+            if email and detail:
+                # 根据权重决定是否启动检测任务
+                if detail.content_weight > 0 and detail.content_detection_status != DetectionStatus.NO_NEED.value:
+                    detail.content_detection_status = DetectionStatus.DETECTING.value
+                    async_detection_service.submit_detection_task(
+                        email_id, 'content', 
+                        detection_agents.analyze_content,
+                        email.content or ''
+                    )
+                
+                if detail.url_weight > 0 and detail.url_detection_status != DetectionStatus.NO_NEED.value:
+                    detail.url_detection_status = DetectionStatus.DETECTING.value
+                    async_detection_service.submit_detection_task(
+                        email_id, 'url',
+                        detection_agents.analyze_urls,
+                        email.content or ''
+                    )
+                
+                if detail.metadata_weight > 0 and detail.metadata_detection_status != DetectionStatus.NO_NEED.value:
+                    detail.metadata_detection_status = DetectionStatus.DETECTING.value
+                    # 解析headers字符串为字典格式
+                    headers_dict = {}
+                    if email.headers and email.headers.strip():
+                        try:
+                            # 解析邮件头部字符串为字典
+                            import email as email_parser
+                            msg = email_parser.message_from_string(email.headers)
+                            headers_dict = dict(msg.items())
+                        except Exception as e:
+                            print(f"解析邮件头部失败: {str(e)}")
+                            headers_dict = {}
+                    
+                    async_detection_service.submit_detection_task(
+                        email_id, 'metadata',
+                        lambda headers: detection_agents.analyze_metadata(headers),
+                        headers_dict
+                    )
+                
+                # 更新检测状态到数据库
+                db.session.add(detail)
+                db.session.commit()
+            
+            return api_response(
+                success=True,
+                message='开始检测成功',
+                data={
+                    'email_id': email_id,
+                    'detection_status': email.detection_status,
+                    'weights': result['data']['weights'],
+                    'detection_detail_id': result['data']['detection_detail_id']
+                }
+            )
+        else:
+            # 回滚事务
+            db.session.rollback()
+            return api_response(
+                success=False,
+                message=result['message']
+            )
+            
+    except Exception as e:
+        db.session.rollback()
+        return api_response(
+            success=False,
+            message=f'开始检测失败: {str(e)}'
+        )
+
+
+@email_bp.route('/detection-overview', methods=['GET'])
+@token_required
+def get_detection_overview(current_user):
+    """获取检测概览数据"""
+    try:
+        user_id = current_user.id
+        
+        # 查找正在检测的邮件
+        detecting_email = Email.query.filter_by(
+            user_id=user_id,
+            detection_status=EmailDetectionStatus.DETECTING.value,
+            is_deleted=False
+        ).first()
+        
+        detecting_email_data = None
+        detecting_detail = None
+        if detecting_email:
+            # 获取邮件基本信息
+            detecting_email_data = detecting_email.to_dict()
+            # 获取检测详情
+            detail = EmailDetectionDetail.find_by_email_id(detecting_email.id)
+            if detail:
+                detecting_detail = detail.to_dict()
+        
+        # 查找待检测的邮件列表
+        pending_emails = Email.query.filter_by(
+            user_id=user_id,
+            detection_status=EmailDetectionStatus.PENDING.value,
+            is_deleted=False
+        ).order_by(Email.created_at.asc()).all()
+        
+        # 转换为字典格式
+        pending_emails_data = [email.to_dict() for email in pending_emails]
+        
+        return api_response(
+            success=True,
+            message='获取检测概览成功',
+            data={
+                'detecting_email': detecting_email_data,
+                'detecting_detail': detecting_detail,
+                'pending_emails': pending_emails_data
+            }
+        )
+        
+    except Exception as e:
+        return api_response(
+            success=False,
+            message=f'获取检测概览失败: {str(e)}'
         )
 
 
@@ -228,9 +414,12 @@ def create_email_binding(current_user):
                 data=validation_result['details']
             )
         
+        # 从验证结果中获取UID
+        latest_uid = validation_result['details'].get('latest_uid')
+        
         # 创建绑定记录
         success, message, binding = EmailBindingService.create_email_binding(
-            current_user.id, provider_id, email, auth_code
+            current_user.id, provider_id, email, auth_code, latest_uid
         )
         
         if success:

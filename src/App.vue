@@ -83,7 +83,7 @@ if (typeof window !== 'undefined') {
         <router-link to="/" class="brand-logo">
           <img src="https://ai.wlai.vip/logo123.png" alt="logo" class="brand-icon" />
           <div class="brand-text-wrapper">
-            <h4 class="brand-title">鱼卫 PhishGuard</h4>
+            <h4 class="brand-title">智邮盾 PhishGuard</h4>
           </div>
         </router-link>
 
@@ -95,12 +95,6 @@ if (typeof window !== 'undefined') {
           <router-link to="/console" class="nav-link">
             <span>控制台</span>
           </router-link>
-          <a href="#" class="nav-link">
-            <span>定价</span>
-          </a>
-          <a href="#" class="nav-link">
-            <span>代理加盟</span>
-          </a>
           <a href="#" class="nav-link">
             <span>联系我们</span>
           </a>
@@ -174,20 +168,31 @@ if (typeof window !== 'undefined') {
           <div v-if="isAuthenticated" class="user-dropdown-container">
             <button class="user-info-btn" @click="toggleUserDropdown">
               <div class="user-avatar">
-                <span class="avatar-text">{{ currentUser?.username?.charAt(0)?.toUpperCase() || 'U' }}</span>
+                <span class="avatar-text">{{
+                  currentUser?.username?.charAt(0)?.toUpperCase() || 'U'
+                }}</span>
               </div>
               <span class="username">{{ currentUser?.username || '用户' }}</span>
-              <svg class="dropdown-arrow" :class="{ 'arrow-up': showUserDropdown }" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <svg
+                class="dropdown-arrow"
+                :class="{ 'arrow-up': showUserDropdown }"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
                 <polyline points="6 9 12 15 18 9" />
               </svg>
             </button>
-            
+
             <!-- 用户下拉菜单 -->
             <div v-if="showUserDropdown" class="user-dropdown-menu">
               <div class="dropdown-header">
                 <div class="user-info">
                   <div class="user-avatar large">
-                    <span class="avatar-text">{{ currentUser?.username?.charAt(0)?.toUpperCase() || 'U' }}</span>
+                    <span class="avatar-text">{{
+                      currentUser?.username?.charAt(0)?.toUpperCase() || 'U'
+                    }}</span>
                   </div>
                   <div class="user-details">
                     <div class="user-name">{{ currentUser?.username || '用户' }}</div>
@@ -195,12 +200,18 @@ if (typeof window !== 'undefined') {
                   </div>
                 </div>
               </div>
-              
+
               <div class="dropdown-divider"></div>
-              
+
               <div class="dropdown-menu-items">
                 <router-link to="/console" class="dropdown-item" @click="closeUserDropdown">
-                  <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <svg
+                    class="item-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
                     <rect x="3" y="3" width="7" height="9" rx="1" />
                     <rect x="14" y="3" width="7" height="5" rx="1" />
                     <rect x="14" y="12" width="7" height="9" rx="1" />
@@ -208,29 +219,49 @@ if (typeof window !== 'undefined') {
                   </svg>
                   <span>控制台</span>
                 </router-link>
-                
+
                 <a href="#" class="dropdown-item" @click="closeUserDropdown">
-                  <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <svg
+                    class="item-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
                     <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                     <circle cx="12" cy="7" r="4" />
                   </svg>
                   <span>个人设置</span>
                 </a>
-                
+
                 <a href="#" class="dropdown-item" @click="closeUserDropdown">
-                  <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <svg
+                    class="item-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
                     <circle cx="12" cy="12" r="3" />
-                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    <path
+                      d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"
+                    />
                   </svg>
                   <span>账户设置</span>
                 </a>
               </div>
-              
+
               <div class="dropdown-divider"></div>
-              
+
               <div class="dropdown-menu-items">
                 <button class="dropdown-item logout-item" @click="handleLogout">
-                  <svg class="item-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <svg
+                    class="item-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
                     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                     <polyline points="16 17 21 12 16 7" />
                     <line x1="21" y1="12" x2="9" y2="12" />
@@ -240,7 +271,7 @@ if (typeof window !== 'undefined') {
               </div>
             </div>
           </div>
-          
+
           <!-- 未登录状态 -->
           <div v-else class="auth-buttons">
             <div class="auth-button-group">

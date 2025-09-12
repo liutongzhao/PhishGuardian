@@ -21,6 +21,9 @@ class UserEmailBinding(db.Model):
     imap_server = db.Column(db.String(255), nullable=False, comment='IMAP服务器地址')
     smtp_server = db.Column(db.String(255), nullable=False, comment='SMTP服务器地址')
     
+    # 邮件同步相关
+    last_uid = db.Column(db.String(50), nullable=True, comment='最新邮件UID')
+    
     # 状态字段
     is_active = db.Column(db.Boolean, default=True, nullable=False, index=True, comment='是否启用')
     is_deleted = db.Column(db.Boolean, default=False, nullable=False, index=True, comment='是否删除')
@@ -47,6 +50,7 @@ class UserEmailBinding(db.Model):
             'auth_code': self.auth_code,
             'imap_server': self.imap_server,
             'smtp_server': self.smtp_server,
+            'last_uid': self.last_uid,
             'is_active': self.is_active,
             'reserved_field1': self.reserved_field1,
             'reserved_field2': self.reserved_field2,

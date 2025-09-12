@@ -98,7 +98,7 @@ class ProductionConfig(Config):
             app.logger.addHandler(file_handler)
             
             app.logger.setLevel(logging.INFO)
-            app.logger.info('PhishGuardian startup')
+            print('PhishGuardian startup')
 
 
 # 配置字典
