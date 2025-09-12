@@ -6,10 +6,10 @@ import router from '@/router'
 // 创建axios实例
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api',
-  timeout: 10000,
+  timeout: 30000,
   headers: {
-    'Content-Type': 'application/json'
-  }
+    'Content-Type': 'application/json',
+  },
 })
 
 // 请求拦截器
@@ -25,7 +25,7 @@ api.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error)
-  }
+  },
 )
 
 // 响应拦截器
@@ -37,11 +37,11 @@ api.interceptors.response.use(
   async (error) => {
     // 统一处理错误
     console.error('API请求错误:', error)
-    
+
     if (error.response) {
       // 服务器返回错误状态码
       const { status, data } = error.response
-      
+
       switch (status) {
         case 400:
           throw new Error(data.message || '请求参数错误')
@@ -52,7 +52,7 @@ api.interceptors.response.use(
           showToast({ message: '登录已过期，请重新登录', type: 'warning' })
           router.push({
             path: '/login',
-            query: { redirect: router.currentRoute.value.fullPath }
+            query: { redirect: router.currentRoute.value.fullPath },
           })
           throw new Error('未授权，请重新登录')
         case 403:
@@ -78,7 +78,7 @@ api.interceptors.response.use(
       // 其他错误
       throw new Error(error.message || '请求失败')
     }
-  }
+  },
 )
 
 // 用户认证相关API
@@ -87,31 +87,31 @@ export const authAPI = {
   checkUsername: (username) => {
     return api.post('/auth/check-username', { username })
   },
-  
+
   // 发送邮箱验证码
   sendVerificationCode: (email) => {
     return api.post('/auth/send-verification-code', { email })
   },
-  
+
   // 用户注册
   register: (userData) => {
     return api.post('/auth/register', userData)
   },
-  
+
   // 用户登录
   login: (credentials) => {
     return api.post('/auth/login', credentials)
   },
-  
+
   // 验证token
   verifyToken: () => {
     return api.post('/auth/verify-token')
   },
-  
+
   // 用户登出
   logout: () => {
     return api.post('/auth/logout')
-  }
+  },
 }
 
 // 导出axios实例供其他模块使用

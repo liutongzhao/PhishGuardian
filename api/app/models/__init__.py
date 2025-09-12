@@ -4,6 +4,7 @@ from .email_provider import EmailProvider
 from .user_email_binding import UserEmailBinding
 from .email import Email, EmailDetectionStatus
 from .email_detection_detail import EmailDetectionDetail, UrgencyLevel, ImportanceLevel
+from .conversation import Conversation, ConversationMessage, ConversationType, MessageRole
 
 __all__ = [
     'User',
@@ -14,5 +15,9 @@ __all__ = [
     'EmailDetectionStatus',
     'EmailDetectionDetail',
     'UrgencyLevel',
-    'ImportanceLevel'
+    'ImportanceLevel',
+    'Conversation',
+    'ConversationMessage',
+    'ConversationType',
+    'MessageRole'
 ]

@@ -66,7 +66,6 @@ const router = createRouter({
           component: EmailDetection,
           meta: { requiresAuth: true },
         },
-
       ],
     },
   ],
@@ -75,42 +74,42 @@ const router = createRouter({
 // 全局前置守卫
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
-  
+
   // 检查路由是否需要认证
-  if (to.matched.some(record => record.meta.requiresAuth)) {
+  if (to.matched.some((record) => record.meta.requiresAuth)) {
     // 如果没有token，直接跳转到登录页
     if (!authStore.isAuthenticated) {
       showToast({ message: '请先登录', type: 'warning' })
       next({
         path: '/login',
-        query: { redirect: to.fullPath } // 保存原始路径，登录后可以跳转回来
+        query: { redirect: to.fullPath }, // 保存原始路径，登录后可以跳转回来
       })
       return
     }
-    
+
     // 验证token是否有效
     const isValid = await authStore.verifyToken()
     if (!isValid) {
       showToast({ message: '登录已过期，请重新登录', type: 'warning' })
       next({
         path: '/login',
-        query: { redirect: to.fullPath }
+        query: { redirect: to.fullPath },
       })
       return
     }
-    
+
     // 检查token是否即将过期
     if (authStore.checkTokenExpiry()) {
       showToast({ message: '登录即将过期，请注意保存工作', type: 'warning' })
     }
   }
-  
+
   // 如果已登录用户访问登录或注册页面，重定向到控制台
   if ((to.path === '/login' || to.path === '/register') && authStore.isAuthenticated) {
     next('/console')
     return
   }
-  
+
   next()
 })
 

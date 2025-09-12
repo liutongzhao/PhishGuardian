@@ -8,10 +8,24 @@
         <div class="sidebar-header">
           <h2 class="sidebar-title">控制台</h2>
           <button class="toggle-sidebar" @click="toggleSidebar">
-            <svg v-if="!isSidebarCollapsed" class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              v-if="!isSidebarCollapsed"
+              class="toggle-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <polyline points="15 18 9 12 15 6" />
             </svg>
-            <svg v-else class="toggle-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg
+              v-else
+              class="toggle-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
               <polyline points="9 18 15 12 9 6" />
             </svg>
           </button>
@@ -115,7 +129,6 @@
             </svg>
             <span class="nav-text">邮件检测</span>
           </router-link>
-
         </nav>
       </aside>
 
@@ -292,8 +305,6 @@ function toggleSidebar() {
   color: #d12323;
 }
 
-
-
 .nav-icon {
   width: 18px;
   height: 18px;
@@ -340,7 +351,7 @@ function toggleSidebar() {
     width: 180px;
     min-width: 180px;
   }
-  
+
   .sidebar-collapsed {
     width: 50px;
     min-width: 50px;
@@ -379,7 +390,7 @@ function toggleSidebar() {
     width: 160px;
     min-width: 160px;
   }
-  
+
   .sidebar-collapsed {
     width: 45px;
     min-width: 45px;

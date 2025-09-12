@@ -6,15 +6,52 @@
         <p class="page-subtitle">使用AI助手帮助您分析和处理邮件内容</p>
       </div>
       <div class="header-actions">
-        <button class="new-chat-btn" @click="createNewChat">
-          <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <button class="new-chat-btn" @click="newConversation">
+          <svg
+            class="btn-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <line x1="12" y1="5" x2="12" y2="19"></line>
             <line x1="5" y1="12" x2="19" y2="12"></line>
           </svg>
           新对话
         </button>
+
+        <button class="sync-btn" @click="syncKnowledgeBase" :disabled="isSyncing">
+          <svg
+            class="btn-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path
+              d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"
+            ></path>
+          </svg>
+          {{ isSyncing ? '同步中...' : '同步知识库' }}
+        </button>
+
         <button class="clear-btn" @click="clearConversation" v-if="messages.length > 0">
-          <svg class="btn-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg
+            class="btn-icon"
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
             <path d="M3 6h18"></path>
             <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
             <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
@@ -33,15 +70,23 @@
           <h3 class="sidebar-title">历史对话</h3>
           <div class="history-list">
             <div v-if="chatHistory.length === 0" class="empty-history">暂无历史对话</div>
-            <button 
-              v-for="(chat, index) in chatHistory" 
-              :key="index" 
-              class="history-item" 
-              :class="{ 'active': currentChatId === chat.id }"
+            <button
+              v-for="(chat, index) in chatHistory"
+              :key="index"
+              class="history-item"
+              :class="{ active: currentChatId === chat.id }"
               @click="loadChat(chat.id)"
             >
               <div class="history-item-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                 </svg>
               </div>
@@ -52,14 +97,22 @@
             </button>
           </div>
         </div>
-        
+
         <!-- 常见问题 -->
         <div class="faq-section">
           <h3 class="sidebar-title">常见问题</h3>
           <div class="faq-list">
             <button class="faq-item" @click="sendSuggestedQuestion('如何识别钓鱼邮件？')">
               <div class="faq-item-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
                   <circle cx="12" cy="12" r="10"></circle>
                   <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
                   <line x1="12" y1="17" x2="12.01" y2="17"></line>
@@ -69,7 +122,15 @@
             </button>
             <button class="faq-item" @click="sendSuggestedQuestion('最近收到的邮件安全吗？')">
               <div class="faq-item-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
                   <circle cx="12" cy="12" r="10"></circle>
                   <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
                   <line x1="12" y1="17" x2="12.01" y2="17"></line>
@@ -79,7 +140,15 @@
             </button>
             <button class="faq-item" @click="sendSuggestedQuestion('邮件中的链接是否可信？')">
               <div class="faq-item-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
                   <circle cx="12" cy="12" r="10"></circle>
                   <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
                   <line x1="12" y1="17" x2="12.01" y2="17"></line>
@@ -89,7 +158,15 @@
             </button>
             <button class="faq-item" @click="sendSuggestedQuestion('如何设置邮件安全策略？')">
               <div class="faq-item-icon">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
                   <circle cx="12" cy="12" r="10"></circle>
                   <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
                   <line x1="12" y1="17" x2="12.01" y2="17"></line>
@@ -100,7 +177,7 @@
           </div>
         </div>
       </div>
-      
+
       <!-- 右侧聊天区域 -->
       <div class="chat-container">
         <!-- 聊天卡片 -->
@@ -113,26 +190,53 @@
                 <div class="message-avatar">
                   <div class="avatar assistant">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        stroke-width="2"
+                        d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"
+                      />
                     </svg>
                   </div>
                 </div>
                 <div class="message-content">
-                  <div class="message-text">👋 您好！我是您的智能邮件助手，可以帮助您解答邮件相关问题。请问有什么可以帮助您的？</div>
+                  <div class="message-text">
+                    👋
+                    您好！我是您的智能邮件助手，可以帮助您解答邮件相关问题。请问有什么可以帮助您的？
+                  </div>
                   <div class="message-time">{{ formatTime(new Date()) }}</div>
                 </div>
               </div>
             </div>
 
             <!-- 对话消息 -->
-            <div v-for="(message, index) in messages" :key="index" :class="['message', message.role === 'user' ? 'user-message' : 'assistant-message']">
+            <div
+              v-for="(message, index) in messages"
+              :key="index"
+              :class="['message', message.role === 'user' ? 'user-message' : 'assistant-message']"
+            >
               <div class="message-avatar">
                 <div :class="['avatar', message.role]">
-                  <svg v-if="message.role === 'user'" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  <svg
+                    v-if="message.role === 'user'"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
                   </svg>
                   <svg v-else viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"
+                    />
                   </svg>
                 </div>
               </div>
@@ -147,7 +251,12 @@
               <div class="message-avatar">
                 <div class="avatar assistant">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"
+                    />
                   </svg>
                 </div>
               </div>
@@ -172,9 +281,18 @@
                 @input="adjustTextareaHeight"
                 ref="messageInput"
               ></textarea>
-              <button class="send-btn" @click="sendMessage" :disabled="!userInput.trim() || isLoading">
+              <button
+                class="send-btn"
+                @click="sendMessage"
+                :disabled="!userInput.trim() || isLoading"
+              >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M5 12h14M12 5l7 7-7 7"
+                  />
                 </svg>
               </button>
             </div>
@@ -187,229 +305,353 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue';
+import { ref, onMounted, nextTick } from 'vue'
+import api from '@/utils/api'
+import { showToast } from '@/utils/toast'
 
 // 响应式数据
-const userInput = ref('');
-const messages = ref([]);
-const isLoading = ref(false);
-const messagesContainer = ref(null);
-const messageInput = ref(null);
-const chatHistory = ref([]);
-const currentChatId = ref(null);
+const userInput = ref('')
+const messages = ref([])
+const isLoading = ref(false)
+const isSyncing = ref(false)
+const messagesContainer = ref(null)
+const messageInput = ref(null)
+const chatHistory = ref([])
+const currentChatId = ref(null)
 
 // 发送消息
 const sendMessage = async () => {
-  const input = userInput.value.trim();
-  if (!input || isLoading.value) return;
-  
-  // 如果是新对话，创建一个新的聊天记录
-  if (messages.value.length === 0) {
-    createNewChat(input);
+  const input = userInput.value.trim()
+  if (!input || isLoading.value) return
+
+  let conversationId = currentChatId.value
+
+  try {
+    // 如果是新对话，先创建对话
+    if (!conversationId) {
+      const createResponse = await api.post('/conversation/create', {
+        title: input.length > 20 ? input.substring(0, 20) + '...' : input,
+        type: 'email_assistant'
+      })
+      
+      if (createResponse.success) {
+        conversationId = createResponse.data.id
+        currentChatId.value = conversationId
+        
+        // 添加到本地聊天历史
+        const newChat = {
+          id: conversationId,
+          title: createResponse.data.title,
+          timestamp: Date.now(),
+          messages: []
+        }
+        chatHistory.value.unshift(newChat)
+      } else {
+        throw new Error('创建对话失败')
+      }
+    }
+
+    // 添加用户消息到界面
+    const userMessage = {
+      role: 'user',
+      content: input,
+      timestamp: new Date(),
+    }
+    messages.value.push(userMessage)
+
+    // 保存用户消息到数据库
+    await api.post(`/conversation/${conversationId}/messages`, {
+      role: 'user',
+      content: input
+    })
+
+    userInput.value = ''
+    adjustTextareaHeight()
+    scrollToBottom()
+
+    // 获取助手回复
+    isLoading.value = true
+    const assistantResponse = await getAssistantResponse(input, conversationId)
+    
+    // 添加助手消息到界面
+    const assistantMessage = {
+      role: 'assistant',
+      content: assistantResponse.content,
+      timestamp: new Date(),
+      sources: assistantResponse.sources
+    }
+    messages.value.push(assistantMessage)
+
+    // 保存助手消息到数据库
+    await api.post(`/conversation/${conversationId}/messages`, {
+      role: 'assistant',
+      content: assistantResponse.content,
+      has_rag_context: assistantResponse.sources.length > 0,
+      rag_sources: assistantResponse.sources
+    })
+
+    isLoading.value = false
+    scrollToBottom()
+
+    // 更新聊天历史
+    updateChatHistory()
+
+  } catch (error) {
+    console.error('发送消息失败:', error)
+    showToast({
+      message: error.message || '发送消息失败，请重试',
+      type: 'error'
+    })
+    isLoading.value = false
   }
-  
-  // 添加用户消息
-  messages.value.push({
-    role: 'user',
-    content: input,
-    timestamp: new Date()
-  });
-  
-  userInput.value = '';
-  adjustTextareaHeight();
-  scrollToBottom();
-  
-  // 模拟助手回复
-  isLoading.value = true;
-  await simulateResponse(input);
-  isLoading.value = false;
-  scrollToBottom();
-  
-  // 更新聊天历史
-  updateChatHistory();
-};
+}
 
 // 发送建议问题
 const sendSuggestedQuestion = (question) => {
-  userInput.value = question;
-  sendMessage();
-};
+  userInput.value = question
+  sendMessage()
+}
 
-// 模拟助手响应
-const simulateResponse = async (input) => {
-  // 模拟网络延迟
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  
-  // 根据输入生成响应
-  let response = '';
-  if (input.includes('钓鱼邮件')) {
-    response = '钓鱼邮件通常有以下特征：\n1. 紧急或威胁性的语言\n2. 要求提供个人信息或密码\n3. 含有可疑链接或附件\n4. 发件人地址与显示名称不匹配\n5. 存在拼写或语法错误\n\n建议您对收到的邮件保持警惕，不要点击可疑链接或下载未知附件。';
-  } else if (input.includes('安全')) {
-    response = '要确保您的邮件安全，建议：\n1. 定期更改密码\n2. 启用两步验证\n3. 不要在公共设备上保存登录状态\n4. 谨慎处理来自未知发件人的邮件\n5. 使用我们的邮件安全扫描功能';
-  } else if (input.includes('链接')) {
-    response = '判断邮件中链接是否可信：\n1. 悬停在链接上查看实际URL\n2. 检查URL是否使用HTTPS\n3. 确认域名是否正确（注意相似域名钓鱼）\n4. 使用我们的链接安全检测功能\n5. 如有疑问，直接访问官方网站而不是通过邮件链接';
-  } else {
-    response = '感谢您的提问。我是您的邮件助手，可以帮助您解答关于邮件安全、识别钓鱼邮件、处理可疑邮件等问题。请告诉我您需要什么帮助？';
-  }
-  
-  messages.value.push({
-    role: 'assistant',
-    content: response,
-    timestamp: new Date()
-  });
-};
+// 调用RAG API获取助手响应
+const getAssistantResponse = async (input, conversationId) => {
+  try {
+    const response = await api.post('/rag/chat', {
+      message: input,
+      conversation_id: conversationId
+    })
 
-// 创建新的聊天
-  const createNewChat = () => {
-    // 如果当前有对话，先保存
-    if (messages.value.length > 0 && currentChatId.value) {
-      updateChatHistory();
+    if (response.success) {
+      return {
+        content: response.data.response,
+        sources: response.data.sources || []
+      }
+    } else {
+      throw new Error(response.message || '获取回复失败')
     }
-    
-    const id = Date.now().toString();
-    const title = '新对话';
-    
-    const newChat = {
-      id,
-      title,
-      timestamp: Date.now(),
-      messages: []
-    };
-    
-    chatHistory.value.unshift(newChat);
-    currentChatId.value = id;
-    messages.value = [];
-    
-    // 本地存储聊天历史
-    localStorage.setItem('emailAssistantChatHistory', JSON.stringify(chatHistory.value));
-  };
+  } catch (error) {
+    console.error('获取助手回复失败:', error)
+    return {
+      content: '抱歉，我暂时无法回复您的问题，请稍后再试。',
+      sources: []
+    }
+  }
+}
 
-// 更新聊天历史
+// 更新聊天历史（仅更新本地显示）
 const updateChatHistory = () => {
-  if (!currentChatId.value) return;
-  
-  const chatIndex = chatHistory.value.findIndex(chat => chat.id === currentChatId.value);
+  if (!currentChatId.value) return
+
+  const chatIndex = chatHistory.value.findIndex((chat) => chat.id === currentChatId.value)
   if (chatIndex !== -1) {
-    // 更新标题（使用第一条用户消息作为标题）
-    const firstUserMessage = messages.value.find(msg => msg.role === 'user');
-    if (firstUserMessage) {
-      const title = firstUserMessage.content.length > 20 ? firstUserMessage.content.substring(0, 20) + '...' : firstUserMessage.content;
-      chatHistory.value[chatIndex].title = title;
-    }
+    // 更新时间戳
+    chatHistory.value[chatIndex].timestamp = Date.now()
     
-    chatHistory.value[chatIndex].messages = [...messages.value];
-      chatHistory.value[chatIndex].timestamp = Date.now(); // 更新时间戳
-      localStorage.setItem('emailAssistantChatHistory', JSON.stringify(chatHistory.value));
+    // 更新标题（使用第一条用户消息作为标题）
+    const firstUserMessage = messages.value.find((msg) => msg.role === 'user')
+    if (firstUserMessage && chatHistory.value[chatIndex].title === '新对话') {
+      const title = firstUserMessage.content.length > 20
+        ? firstUserMessage.content.substring(0, 20) + '...'
+        : firstUserMessage.content
+      chatHistory.value[chatIndex].title = title
+    }
   }
-};
+}
 
 // 加载聊天记录
-const loadChat = (chatId) => {
-  // 如果当前有对话，先保存
-  if (messages.value.length > 0 && currentChatId.value && currentChatId.value !== chatId) {
-    updateChatHistory();
-  }
-  
-  const chat = chatHistory.value.find(c => c.id === chatId);
-  if (chat) {
-    currentChatId.value = chatId;
-    messages.value = [...chat.messages];
-    scrollToBottom();
-  }
-};
+const loadChat = async (chatId) => {
+  try {
+    // 如果当前有对话，先保存
+    if (messages.value.length > 0 && currentChatId.value && currentChatId.value !== chatId) {
+      updateChatHistory()
+    }
 
-// 开始新对话
-const startNewChat = () => {
-  messages.value = [];
-  currentChatId.value = null;
+    // 从数据库加载消息
+    const response = await api.get(`/conversation/${chatId}/messages`)
+    
+    if (response.success) {
+      currentChatId.value = chatId
+      messages.value = response.data.messages.map(msg => ({
+        role: msg.role,
+        content: msg.content,
+        timestamp: new Date(msg.created_at),
+        sources: msg.rag_sources || []
+      }))
+      scrollToBottom()
+    } else {
+      throw new Error(response.message || '加载对话失败')
+    }
+  } catch (error) {
+    console.error('加载对话失败:', error)
+    showToast({
+      message: '加载对话失败，请重试',
+      type: 'error'
+    })
+  }
+}
+
+// 同步知识库
+const syncKnowledgeBase = async () => {
+  if (isSyncing.value) return
+
+  isSyncing.value = true
+  try {
+    const response = await api.get('/rag/knowledge/text')
+
+    if (response.success) {
+      showToast({
+        message: `知识库同步成功！已处理 ${response.data.bindings_count} 个邮箱绑定和 ${response.data.emails_count} 封邮件`,
+        type: 'success',
+      })
+    } else {
+      showToast({
+        message: response.message || '知识库同步失败',
+        type: 'error',
+      })
+    }
+  } catch (error) {
+    console.error('同步知识库失败:', error)
+    showToast({
+      message: error.message || '同步知识库时发生错误',
+      type: 'error',
+    })
+  } finally {
+    isSyncing.value = false
+  }
+}
+
+// 新建对话
+const newConversation = () => {
+  // 清空当前消息
+  messages.value = []
+  currentChatId.value = null
+  
+  // 新对话将在用户发送第一条消息时创建
   nextTick(() => {
-    messageInput.value.focus();
-  });
-};
+    messageInput.value.focus()
+  })
+}
 
 // 清空对话
-const clearConversation = () => {
-  messages.value = [];
-  
-  // 如果当前有选中的聊天，从历史记录中删除
-  if (currentChatId.value) {
-    const chatIndex = chatHistory.value.findIndex(chat => chat.id === currentChatId.value);
-    if (chatIndex !== -1) {
-      chatHistory.value.splice(chatIndex, 1);
-      localStorage.setItem('emailAssistantChatHistory', JSON.stringify(chatHistory.value));
-    }
-    currentChatId.value = null;
-    
-    // 如果还有其他对话，加载最近的一个
-    if (chatHistory.value.length > 0) {
-      loadChat(chatHistory.value[0].id);
-    }
+const clearConversation = async () => {
+  if (!currentChatId.value) {
+    messages.value = []
+    return
   }
-};
+
+  try {
+    // 删除数据库中的对话
+    const response = await api.delete(`/conversation/${currentChatId.value}`)
+    
+    if (response.success) {
+      messages.value = []
+      
+      // 从历史记录中删除
+      const chatIndex = chatHistory.value.findIndex((chat) => chat.id === currentChatId.value)
+      if (chatIndex !== -1) {
+        chatHistory.value.splice(chatIndex, 1)
+      }
+      
+      currentChatId.value = null
+
+      // 如果还有其他对话，加载最近的一个
+      if (chatHistory.value.length > 0) {
+        await loadChat(chatHistory.value[0].id)
+      }
+      
+      showToast({
+        message: '对话已删除',
+        type: 'success'
+      })
+    } else {
+      throw new Error(response.message || '删除对话失败')
+    }
+  } catch (error) {
+    console.error('删除对话失败:', error)
+    showToast({
+      message: '删除对话失败，请重试',
+      type: 'error'
+    })
+  }
+}
 
 // 格式化时间
 const formatTime = (timestamp) => {
-  const date = new Date(timestamp);
-  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-};
+  const date = new Date(timestamp)
+  return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`
+}
 
 // 格式化日期
 const formatDate = (timestamp) => {
-  const date = new Date(timestamp);
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  
+  const date = new Date(timestamp)
+  const today = new Date()
+  const yesterday = new Date(today)
+  yesterday.setDate(yesterday.getDate() - 1)
+
   if (date.toDateString() === today.toDateString()) {
-    return '今天';
+    return '今天'
   } else if (date.toDateString() === yesterday.toDateString()) {
-    return '昨天';
+    return '昨天'
   } else {
-    return `${date.getMonth() + 1}月${date.getDate()}日`;
+    return `${date.getMonth() + 1}月${date.getDate()}日`
   }
-};
+}
 
 // 调整文本框高度
 const adjustTextareaHeight = () => {
-  const textarea = messageInput.value;
-  if (!textarea) return;
-  
-  textarea.style.height = 'auto';
-  textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`;
-};
+  const textarea = messageInput.value
+  if (!textarea) return
+
+  textarea.style.height = 'auto'
+  textarea.style.height = `${Math.min(textarea.scrollHeight, 120)}px`
+}
 
 // 滚动到底部
 const scrollToBottom = async () => {
-  await nextTick();
+  await nextTick()
   if (messagesContainer.value) {
-    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight;
+    messagesContainer.value.scrollTop = messagesContainer.value.scrollHeight
   }
-};
+}
 
-// 从本地存储加载聊天历史
-const loadChatHistory = () => {
-  const savedHistory = localStorage.getItem('emailAssistantChatHistory');
-  if (savedHistory) {
-    try {
-      chatHistory.value = JSON.parse(savedHistory);
+// 从数据库加载聊天历史
+const loadChatHistory = async () => {
+  try {
+    const response = await api.get('/conversation/list')
+    
+    if (response.success) {
+      chatHistory.value = response.data.conversations.map(conv => ({
+        id: conv.id,
+        title: conv.title,
+        timestamp: new Date(conv.last_message_at || conv.created_at).getTime(),
+        messages: [] // 消息将在点击时加载
+      }))
+      
       // 如果有历史记录，加载最近的一个
       if (chatHistory.value.length > 0) {
-        currentChatId.value = chatHistory.value[0].id;
-        messages.value = [...chatHistory.value[0].messages];
+        await loadChat(chatHistory.value[0].id)
       }
-    } catch (e) {
-      console.error('Failed to parse chat history:', e);
-      chatHistory.value = [];
+    }
+  } catch (error) {
+    console.error('加载对话历史失败:', error)
+    // 如果API调用失败，尝试从本地存储加载
+    const savedHistory = localStorage.getItem('emailAssistantChatHistory')
+    if (savedHistory) {
+      try {
+        chatHistory.value = JSON.parse(savedHistory)
+      } catch (e) {
+        console.error('Failed to parse chat history:', e)
+        chatHistory.value = []
+      }
     }
   }
-};
+}
 
 // 组件挂载后初始化
 onMounted(() => {
-  loadChatHistory();
-  adjustTextareaHeight();
-  messageInput.value.focus();
-});
+  loadChatHistory()
+  adjustTextareaHeight()
+  messageInput.value.focus()
+})
 </script>
 
 <style scoped>
@@ -458,6 +700,7 @@ onMounted(() => {
 }
 
 .new-chat-btn,
+.sync-btn,
 .clear-btn {
   display: flex;
   align-items: center;
@@ -479,6 +722,36 @@ onMounted(() => {
 .new-chat-btn:hover {
   background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   box-shadow: 0 4px 6px rgba(59, 130, 246, 0.4);
+}
+
+.sync-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  border: none;
+  color: white;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+}
+
+.sync-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  box-shadow: 0 4px 6px rgba(16, 185, 129, 0.4);
+}
+
+.sync-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sync-btn .spinning {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .clear-btn {
@@ -829,7 +1102,9 @@ onMounted(() => {
 }
 
 @keyframes typing {
-  0%, 60%, 100% {
+  0%,
+  60%,
+  100% {
     transform: translateY(0);
     opacity: 0.4;
   }
@@ -925,7 +1200,7 @@ onMounted(() => {
     padding: 16px 20px;
     gap: 16px;
   }
-  
+
   .sidebar {
     width: 240px;
   }
@@ -938,29 +1213,29 @@ onMounted(() => {
     gap: 12px;
     align-items: flex-start;
   }
-  
+
   .header-actions {
     margin-top: 0;
   }
-  
+
   .assistant-content {
     flex-direction: column;
     padding: 12px 16px;
   }
-  
+
   .sidebar {
     width: 100%;
     max-height: 200px;
   }
-  
+
   .chat-area {
     padding: 16px;
   }
-  
+
   .chat-input-area {
     padding: 16px;
   }
-  
+
   .message-input {
     padding: 8px 12px;
   }

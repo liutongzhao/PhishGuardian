@@ -53,6 +53,9 @@ def create_app(config_name=None):
     from app.api.health import health_bp
     from app.api.auth import auth_bp
     from app.api.email import email_bp
+    from app.api.rag import rag_bp
+    from app.api.conversation import conversation_bp
+    
     
     # 注册健康检查蓝图
     app.register_blueprint(health_bp, url_prefix='/api')
@@ -62,6 +65,13 @@ def create_app(config_name=None):
     
     # 注册邮箱管理蓝图
     app.register_blueprint(email_bp, url_prefix='/api/email')
+    
+    # 注册RAG知识库蓝图
+    app.register_blueprint(rag_bp)
+    
+    # 注册对话蓝图
+    app.register_blueprint(conversation_bp)
+    
     
     # 创建数据库表
     with app.app_context():

@@ -48,5 +48,13 @@ APScheduler==3.10.4
 # Monitoring (optional)
 psutil==5.9.6
 
+# RAG & Vector Database
+chromadb==0.4.18
+sentence-transformers==2.2.2
+torch>=1.11.0
+transformers>=4.21.0
+numpy>=1.21.0
+scikit-learn>=1.0.0
+
 # API Documentation (optional)
 flasgger==0.9.7.1
