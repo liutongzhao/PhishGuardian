@@ -241,33 +241,24 @@
                 </div>
               </div>
               <div class="message-content">
-                <div class="message-text">{{ message.content }}</div>
+                <div
+                  class="message-text"
+                  v-if="message.role === 'assistant'"
+                  :class="{ streaming: message.isStreaming }"
+                  v-html="renderMarkdown(message.content)"
+                ></div>
+                <div class="message-text" v-else>{{ message.content }}</div>
+
+                <!-- 流式状态指示器 -->
+                <div v-if="message.isStreaming" class="streaming-indicator">
+                  <span class="typing-cursor">|</span>
+                </div>
+
                 <div class="message-time">{{ formatTime(message.timestamp) }}</div>
               </div>
             </div>
 
-            <!-- 加载状态 -->
-            <div v-if="isLoading" class="message assistant-message">
-              <div class="message-avatar">
-                <div class="avatar assistant">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path
-                      stroke-linecap="round"
-                      stroke-linejoin="round"
-                      stroke-width="2"
-                      d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"
-                    />
-                  </svg>
-                </div>
-              </div>
-              <div class="message-content">
-                <div class="typing-indicator">
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </div>
-              </div>
-            </div>
+            <!-- 移除重复的流式加载状态，使用消息中的isStreaming状态来显示 -->
           </div>
 
           <!-- 输入区域 -->
@@ -284,7 +275,7 @@
               <button
                 class="send-btn"
                 @click="sendMessage"
-                :disabled="!userInput.trim() || isLoading"
+                :disabled="!userInput.trim() || isStreaming"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                   <path
@@ -305,9 +296,24 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, watch } from 'vue'
+import { marked } from 'marked'
 import api from '@/utils/api'
-import { showToast } from '@/utils/toast'
+import { showToast,  showError } from '@/utils/toast'
+import { useAuthStore } from '@/stores/auth'
+
+// 配置marked选项
+marked.setOptions({
+  breaks: true, // 支持换行
+  gfm: true, // 支持GitHub风格的Markdown
+  sanitize: false, // 允许HTML（注意：在生产环境中要谨慎使用）
+})
+
+// 渲染Markdown内容
+const renderMarkdown = (content) => {
+  if (!content) return ''
+  return marked(content)
+}
 
 // 响应式数据
 const userInput = ref('')
@@ -319,10 +325,17 @@ const messageInput = ref(null)
 const chatHistory = ref([])
 const currentChatId = ref(null)
 
-// 发送消息
+// 流式聊天相关的响应式变量
+const isStreaming = ref(false)
+const streamingMessageIndex = ref(-1)
+const currentEventSource = ref(null)
+
+// Toast函数已通过import导入
+
+// 发送消息（流式版本）
 const sendMessage = async () => {
   const input = userInput.value.trim()
-  if (!input || isLoading.value) return
+  if (!input || isLoading.value || isStreaming.value) return
 
   let conversationId = currentChatId.value
 
@@ -331,19 +344,19 @@ const sendMessage = async () => {
     if (!conversationId) {
       const createResponse = await api.post('/conversation/create', {
         title: input.length > 20 ? input.substring(0, 20) + '...' : input,
-        type: 'email_assistant'
+        type: 'email_assistant',
       })
-      
+
       if (createResponse.success) {
         conversationId = createResponse.data.id
         currentChatId.value = conversationId
-        
+
         // 添加到本地聊天历史
         const newChat = {
           id: conversationId,
           title: createResponse.data.title,
           timestamp: Date.now(),
-          messages: []
+          messages: [],
         }
         chatHistory.value.unshift(newChat)
       } else {
@@ -362,47 +375,26 @@ const sendMessage = async () => {
     // 保存用户消息到数据库
     await api.post(`/conversation/${conversationId}/messages`, {
       role: 'user',
-      content: input
+      content: input,
     })
 
     userInput.value = ''
     adjustTextareaHeight()
     scrollToBottom()
 
-    // 获取助手回复
-    isLoading.value = true
-    const assistantResponse = await getAssistantResponse(input, conversationId)
-    
-    // 添加助手消息到界面
-    const assistantMessage = {
-      role: 'assistant',
-      content: assistantResponse.content,
-      timestamp: new Date(),
-      sources: assistantResponse.sources
-    }
-    messages.value.push(assistantMessage)
-
-    // 保存助手消息到数据库
-    await api.post(`/conversation/${conversationId}/messages`, {
-      role: 'assistant',
-      content: assistantResponse.content,
-      has_rag_context: assistantResponse.sources.length > 0,
-      rag_sources: assistantResponse.sources
-    })
-
-    isLoading.value = false
-    scrollToBottom()
+    // 开始流式获取助手回复
+    await getAssistantResponseStream(input, conversationId)
 
     // 更新聊天历史
     updateChatHistory()
-
   } catch (error) {
     console.error('发送消息失败:', error)
     showToast({
       message: error.message || '发送消息失败，请重试',
-      type: 'error'
+      type: 'error',
     })
     isLoading.value = false
+    isStreaming.value = false
   }
 }
 
@@ -412,30 +404,207 @@ const sendSuggestedQuestion = (question) => {
   sendMessage()
 }
 
-// 调用RAG API获取助手响应
-const getAssistantResponse = async (input, conversationId) => {
+// 流式获取助手响应
+const getAssistantResponseStream = async (input, conversationId) => {
+  let controller = null
+
   try {
-    const response = await api.post('/rag/chat', {
+    isStreaming.value = true
+    isLoading.value = true
+
+    // 添加空的助手消息到界面，用于流式填充
+    const assistantMessage = {
+      role: 'assistant',
+      content: '',
+      timestamp: new Date(),
+      sources: [],
+      isStreaming: true,
+    }
+    messages.value.push(assistantMessage)
+    streamingMessageIndex.value = messages.value.length - 1
+    scrollToBottom()
+
+    // 获取认证token（使用axios的拦截器逻辑）
+    const authStore = useAuthStore()
+    const authHeader = authStore.getAuthHeader()
+    if (!authHeader) {
+      throw new Error('未找到认证token')
+    }
+
+    // 准备发送的数据
+    const requestData = {
       message: input,
-      conversation_id: conversationId
+      conversation_id: conversationId,
+    }
+
+    // 使用fetch进行流式请求（axios不支持真正的流式响应）
+    controller = new AbortController()
+    // 不设置超时，让流式响应自然结束
+    // timeoutId = setTimeout(() => controller.abort(), 120000)
+
+    const response = await fetch('http://localhost:5000/api/rag/chat/stream', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: authHeader,
+        Accept: 'text/event-stream',
+      },
+      body: JSON.stringify(requestData),
+      signal: controller.signal,
     })
 
-    if (response.success) {
-      return {
-        content: response.data.response,
-        sources: response.data.sources || []
+    // clearTimeout(timeoutId) // 不再需要清除超时
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    let fullContent = ''
+    let sources = []
+
+    while (true) {
+      const { done, value } = await reader.read()
+
+      if (done) break
+
+      buffer += decoder.decode(value, { stream: true })
+      const lines = buffer.split('\n')
+      buffer = lines.pop() // 保留不完整的行
+
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const dataStr = line.slice(6)
+          if (dataStr.trim() === '') continue
+
+          try {
+            const data = JSON.parse(dataStr)
+
+            switch (data.type) {
+              case 'start':
+              case 'status':
+                // 显示状态信息 - 直接替换内容
+                if (streamingMessageIndex.value >= 0) {
+                  messages.value[streamingMessageIndex.value].content = data.message
+                }
+                break
+
+              case 'content':
+                // 流式添加内容 - 累积内容
+                fullContent += data.content
+                if (streamingMessageIndex.value >= 0) {
+                  // 如果当前内容是状态消息，先清空再添加AI回复
+                  const currentMsg = messages.value[streamingMessageIndex.value]
+                  if (
+                    currentMsg.content.includes('开始处理') ||
+                    currentMsg.content.includes('正在检索') ||
+                    currentMsg.content.includes('正在分析') ||
+                    currentMsg.content.includes('AI正在思考')
+                  ) {
+                    currentMsg.content = data.content
+                  } else {
+                    currentMsg.content += data.content
+                  }
+                  await nextTick()
+                  scrollToBottom()
+                }
+                break
+
+              case 'conversation_created':
+                // 新对话创建
+                if (data.conversation_id) {
+                  currentChatId.value = data.conversation_id
+                  // 添加到聊天历史
+                  const newChat = {
+                    id: data.conversation_id,
+                    title: '新对话',
+                    timestamp: Date.now(),
+                  }
+                  chatHistory.value.unshift(newChat)
+                }
+                break
+
+              case 'done':
+                // 完成
+                sources = data.sources || []
+
+                // 更新对话ID（如果有的话）
+                if (data.conversation_id && !currentChatId.value) {
+                  currentChatId.value = data.conversation_id
+                }
+
+                if (streamingMessageIndex.value >= 0) {
+                  messages.value[streamingMessageIndex.value].sources = sources
+                  messages.value[streamingMessageIndex.value].isStreaming = false
+                }
+
+                // 更新聊天历史
+                updateChatHistory()
+
+                // 流式响应完成，跳出循环
+                return
+
+              case 'error':
+                throw new Error(data.message || '流式响应错误')
+            }
+          } catch (parseError) {
+            console.warn('解析SSE数据失败:', parseError)
+          }
+        }
       }
-    } else {
-      throw new Error(response.message || '获取回复失败')
+    }
+
+    // 保存助手消息到数据库
+    if (fullContent) {
+      await api.post(`/conversation/${conversationId}/messages`, {
+        role: 'assistant',
+        content: fullContent,
+        has_rag_context: sources.length > 0,
+        rag_sources: sources,
+      })
     }
   } catch (error) {
-    console.error('获取助手回复失败:', error)
-    return {
-      content: '抱歉，我暂时无法回复您的问题，请稍后再试。',
-      sources: []
+    console.error('流式获取助手回复失败:', error)
+
+    // 处理请求被中止的情况
+    if (error.name === 'AbortError') {
+      showError('请求超时，请稍后重试')
+      if (streamingMessageIndex.value >= 0) {
+        messages.value[streamingMessageIndex.value].content = '请求超时，请稍后重试。'
+        messages.value[streamingMessageIndex.value].isStreaming = false
+      }
+      return
     }
+
+    // 更新错误消息
+    if (streamingMessageIndex.value >= 0) {
+      messages.value[streamingMessageIndex.value].content = '抱歉，我暂时无法回复您的问题，请稍后再试。'
+      messages.value[streamingMessageIndex.value].isStreaming = false
+    }
+
+    showError(error.message || '获取回复失败')
+  } finally {
+    // 清理AbortController
+    if (controller) {
+      controller.abort()
+    }
+
+    isStreaming.value = false
+    isLoading.value = false
+    streamingMessageIndex.value = -1
+
+    if (currentEventSource.value) {
+      currentEventSource.value.close()
+      currentEventSource.value = null
+    }
+
+    scrollToBottom()
   }
 }
+
+
 
 // 更新聊天历史（仅更新本地显示）
 const updateChatHistory = () => {
@@ -445,13 +614,14 @@ const updateChatHistory = () => {
   if (chatIndex !== -1) {
     // 更新时间戳
     chatHistory.value[chatIndex].timestamp = Date.now()
-    
+
     // 更新标题（使用第一条用户消息作为标题）
     const firstUserMessage = messages.value.find((msg) => msg.role === 'user')
     if (firstUserMessage && chatHistory.value[chatIndex].title === '新对话') {
-      const title = firstUserMessage.content.length > 20
-        ? firstUserMessage.content.substring(0, 20) + '...'
-        : firstUserMessage.content
+      const title =
+        firstUserMessage.content.length > 20
+          ? firstUserMessage.content.substring(0, 20) + '...'
+          : firstUserMessage.content
       chatHistory.value[chatIndex].title = title
     }
   }
@@ -467,14 +637,14 @@ const loadChat = async (chatId) => {
 
     // 从数据库加载消息
     const response = await api.get(`/conversation/${chatId}/messages`)
-    
+
     if (response.success) {
       currentChatId.value = chatId
-      messages.value = response.data.messages.map(msg => ({
+      messages.value = response.data.messages.map((msg) => ({
         role: msg.role,
         content: msg.content,
         timestamp: new Date(msg.created_at),
-        sources: msg.rag_sources || []
+        sources: msg.rag_sources || [],
       }))
       scrollToBottom()
     } else {
@@ -484,7 +654,7 @@ const loadChat = async (chatId) => {
     console.error('加载对话失败:', error)
     showToast({
       message: '加载对话失败，请重试',
-      type: 'error'
+      type: 'error',
     })
   }
 }
@@ -524,7 +694,7 @@ const newConversation = () => {
   // 清空当前消息
   messages.value = []
   currentChatId.value = null
-  
+
   // 新对话将在用户发送第一条消息时创建
   nextTick(() => {
     messageInput.value.focus()
@@ -541,26 +711,26 @@ const clearConversation = async () => {
   try {
     // 删除数据库中的对话
     const response = await api.delete(`/conversation/${currentChatId.value}`)
-    
+
     if (response.success) {
       messages.value = []
-      
+
       // 从历史记录中删除
       const chatIndex = chatHistory.value.findIndex((chat) => chat.id === currentChatId.value)
       if (chatIndex !== -1) {
         chatHistory.value.splice(chatIndex, 1)
       }
-      
+
       currentChatId.value = null
 
       // 如果还有其他对话，加载最近的一个
       if (chatHistory.value.length > 0) {
         await loadChat(chatHistory.value[0].id)
       }
-      
+
       showToast({
         message: '对话已删除',
-        type: 'success'
+        type: 'success',
       })
     } else {
       throw new Error(response.message || '删除对话失败')
@@ -569,7 +739,7 @@ const clearConversation = async () => {
     console.error('删除对话失败:', error)
     showToast({
       message: '删除对话失败，请重试',
-      type: 'error'
+      type: 'error',
     })
   }
 }
@@ -617,15 +787,15 @@ const scrollToBottom = async () => {
 const loadChatHistory = async () => {
   try {
     const response = await api.get('/conversation/list')
-    
+
     if (response.success) {
-      chatHistory.value = response.data.conversations.map(conv => ({
+      chatHistory.value = response.data.conversations.map((conv) => ({
         id: conv.id,
         title: conv.title,
         timestamp: new Date(conv.last_message_at || conv.created_at).getTime(),
-        messages: [] // 消息将在点击时加载
+        messages: [], // 消息将在点击时加载
       }))
-      
+
       // 如果有历史记录，加载最近的一个
       if (chatHistory.value.length > 0) {
         await loadChat(chatHistory.value[0].id)
@@ -633,25 +803,34 @@ const loadChatHistory = async () => {
     }
   } catch (error) {
     console.error('加载对话历史失败:', error)
-    // 如果API调用失败，尝试从本地存储加载
-    const savedHistory = localStorage.getItem('emailAssistantChatHistory')
-    if (savedHistory) {
-      try {
-        chatHistory.value = JSON.parse(savedHistory)
-      } catch (e) {
-        console.error('Failed to parse chat history:', e)
-        chatHistory.value = []
-      }
-    }
+    chatHistory.value = []
   }
 }
+
+
 
 // 组件挂载后初始化
 onMounted(() => {
   loadChatHistory()
   adjustTextareaHeight()
   messageInput.value.focus()
+
+
 })
+
+// 组件卸载时清理
+const cleanup = () => {
+  // 关闭SSE连接
+  if (currentEventSource.value) {
+    currentEventSource.value.close()
+    currentEventSource.value = null
+  }
+
+
+}
+
+// 在组件卸载时清理资源
+watch(() => {}, cleanup, { flush: 'post' })
 </script>
 
 <style scoped>
@@ -962,11 +1141,11 @@ onMounted(() => {
 /* 聊天区域 */
 .chat-area {
   flex: 1;
-  padding: 24px;
+  padding: 20px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
   background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%);
   background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23e5e7eb' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
 }
@@ -981,7 +1160,7 @@ onMounted(() => {
   display: flex;
   gap: 12px;
   max-width: 100%;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .user-message {
@@ -1029,10 +1208,10 @@ onMounted(() => {
 }
 
 .message-text {
-  padding: 14px 18px;
-  border-radius: 18px;
+  padding: 12px 16px;
+  border-radius: 16px;
   font-size: 14px;
-  line-height: 1.6;
+  line-height: 1.5;
   white-space: pre-wrap;
   word-wrap: break-word;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -1042,18 +1221,18 @@ onMounted(() => {
   background: #f8fafc;
   color: #374151;
   border-top-left-radius: 4px;
-  border-bottom-left-radius: 18px;
-  border-bottom-right-radius: 18px;
-  border-top-right-radius: 18px;
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+  border-top-right-radius: 16px;
 }
 
 .user-message .message-text {
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: white;
   border-top-right-radius: 4px;
-  border-bottom-left-radius: 18px;
-  border-bottom-right-radius: 18px;
-  border-top-left-radius: 18px;
+  border-bottom-left-radius: 16px;
+  border-bottom-right-radius: 16px;
+  border-top-left-radius: 16px;
 }
 
 .message-time {
@@ -1076,9 +1255,9 @@ onMounted(() => {
 .typing-indicator {
   display: flex;
   gap: 6px;
-  padding: 14px 18px;
+  padding: 12px 16px;
   background: #f8fafc;
-  border-radius: 18px;
+  border-radius: 16px;
   border-top-left-radius: 4px;
   width: fit-content;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
@@ -1194,6 +1373,122 @@ onMounted(() => {
   font-style: italic;
 }
 
+/* Markdown内容样式 */
+.message-text :deep(h1),
+.message-text :deep(h2),
+.message-text :deep(h3),
+.message-text :deep(h4),
+.message-text :deep(h5),
+.message-text :deep(h6) {
+  margin: 12px 0 6px 0;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.message-text :deep(h1:first-child),
+.message-text :deep(h2:first-child),
+.message-text :deep(h3:first-child),
+.message-text :deep(h4:first-child),
+.message-text :deep(h5:first-child),
+.message-text :deep(h6:first-child) {
+  margin-top: 0;
+}
+
+.message-text :deep(h1) {
+  font-size: 1.5em;
+}
+.message-text :deep(h2) {
+  font-size: 1.3em;
+}
+.message-text :deep(h3) {
+  font-size: 1.1em;
+}
+
+.message-text :deep(p) {
+  margin: 0 0 4px 0;
+  line-height: 1.5;
+}
+
+.message-text :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.message-text :deep(ul),
+.message-text :deep(ol) {
+  margin: 4px 0;
+  padding-left: 20px;
+}
+
+.message-text :deep(li) {
+  margin: 1px 0;
+  line-height: 1.4;
+}
+
+.message-text :deep(code) {
+  background: rgba(0, 0, 0, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.9em;
+}
+
+.message-text :deep(pre) {
+  background: rgba(0, 0, 0, 0.05);
+  padding: 10px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 8px 0;
+  font-size: 0.9em;
+}
+
+.message-text :deep(pre code) {
+  background: none;
+  padding: 0;
+}
+
+.message-text :deep(blockquote) {
+  border-left: 3px solid #d1d5db;
+  padding-left: 12px;
+  margin: 8px 0;
+  color: #6b7280;
+  font-style: italic;
+}
+
+.message-text :deep(strong) {
+  font-weight: 600;
+}
+
+.message-text :deep(em) {
+  font-style: italic;
+}
+
+.message-text :deep(a) {
+  color: #3b82f6;
+  text-decoration: underline;
+}
+
+.message-text :deep(a:hover) {
+  color: #2563eb;
+}
+
+.message-text :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 12px 0;
+}
+
+.message-text :deep(th),
+.message-text :deep(td) {
+  border: 1px solid #e5e7eb;
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.message-text :deep(th) {
+  background: #f9fafb;
+  font-weight: 600;
+}
+
 /* 响应式设计 */
 @media (max-width: 1024px) {
   .assistant-content {
@@ -1235,9 +1530,70 @@ onMounted(() => {
   .chat-input-area {
     padding: 16px;
   }
+}
 
-  .message-input {
-    padding: 8px 12px;
+/* 流式消息和打字机效果样式 */
+.message-text.streaming {
+  position: relative;
+}
+
+.streaming-indicator {
+  display: inline-block;
+  margin-left: 2px;
+}
+
+.typing-cursor {
+  display: inline-block;
+  color: #3b82f6;
+  font-weight: bold;
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* 流式加载状态优化 */
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 0;
+}
+
+.typing-indicator span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #9ca3af;
+  animation: typing 1.4s infinite ease-in-out;
+}
+
+.typing-indicator span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.typing-indicator span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+@keyframes typing {
+  0%,
+  80%,
+  100% {
+    transform: scale(0.8);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
   }
 }
 </style>

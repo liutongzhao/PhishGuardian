@@ -42,13 +42,22 @@ class VectorService:
     def _initialize_client(self):
         """初始化ChromaDB客户端"""
         try:
+            # 完全禁用遥测功能的配置
+            settings = Settings(
+                anonymized_telemetry=False,
+                allow_reset=True,
+                is_persistent=True
+            )
+            
+            # 设置环境变量禁用遥测
+            import os
+            os.environ['ANONYMIZED_TELEMETRY'] = 'False'
+            os.environ['CHROMA_TELEMETRY_DISABLED'] = 'True'
+            
             # 创建ChromaDB客户端
             self._client = chromadb.PersistentClient(
                 path=get_vector_db_path(),
-                settings=Settings(
-                    anonymized_telemetry=False,
-                    allow_reset=True
-                )
+                settings=settings
             )
             logger.info(f"ChromaDB客户端初始化成功，数据库路径: {get_vector_db_path()}")
         except Exception as e:

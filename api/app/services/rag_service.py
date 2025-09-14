@@ -85,6 +85,7 @@ class RAGService:
                 query=query,
                 top_k=top_k
             )
+            # print(search_results)
             
             return {
                 'success': True,
@@ -299,25 +300,3 @@ class RAGService:
         text_parts.append("=== 知识库信息结束 ===")
         
         return "\n".join(text_parts)
-    
-    @staticmethod
-    def print_user_knowledge(user_id: int) -> None:
-        """
-        打印用户知识库文本到控制台
-        
-        Args:
-            user_id: 用户ID
-        """
-        result = RAGService.get_user_knowledge_text(user_id)
-        
-        if result['success']:
-            print("\n" + "="*80)
-            print(f"用户 {user_id} 的知识库文本")
-            print("="*80)
-            print(result['knowledge_text'])
-            print("="*80)
-            print(f"统计信息: 邮箱绑定 {result['bindings_count']} 个，邮件 {result['emails_count']} 封")
-            print(f"生成时间: {result['generated_at']}")
-            print("="*80 + "\n")
-        else:
-            print(f"\n获取用户 {user_id} 知识库失败: {result['error']}\n")
