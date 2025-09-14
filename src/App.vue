@@ -1,7 +1,8 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
+import wsManager from '@/utils/websocket'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -24,9 +25,49 @@ const closeUserDropdown = () => {
 // 处理退出登录
 const handleLogout = async () => {
   closeUserDropdown()
+  // 断开WebSocket连接
+  wsManager.disconnect()
   await authStore.logout()
   router.push('/')
 }
+
+// 全局WebSocket连接管理
+const initializeWebSocket = () => {
+  if (authStore.isAuthenticated && !wsManager.isConnected) {
+    wsManager.connect()
+  }
+}
+
+const cleanupWebSocket = () => {
+  if (wsManager.isConnected) {
+    wsManager.disconnect()
+  }
+}
+
+// 监听认证状态变化
+watch(
+  () => authStore.isAuthenticated,
+  (isAuthenticated) => {
+    if (isAuthenticated) {
+      // 用户登录时连接WebSocket
+      initializeWebSocket()
+    } else {
+      // 用户退出时断开WebSocket
+      cleanupWebSocket()
+    }
+  },
+  { immediate: true }
+)
+
+// 组件挂载时初始化WebSocket
+onMounted(() => {
+  initializeWebSocket()
+})
+
+// 组件卸载时清理WebSocket
+onUnmounted(() => {
+  cleanupWebSocket()
+})
 
 // 点击外部关闭下拉菜单
 const handleClickOutside = (event) => {

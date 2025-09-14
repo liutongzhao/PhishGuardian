@@ -14,18 +14,40 @@ logger = logging.getLogger(__name__)
 # 创建RAG蓝图
 rag_bp = Blueprint('rag', __name__, url_prefix='/api/rag')
 
-
-
-
-
-
-
-
-
-
-
-
-
+@rag_bp.route('/knowledge/text', methods=['GET'])
+@token_required
+def get_knowledge_text(current_user):
+    """
+    同步用户知识库到向量数据库
+    """
+    try:
+        # 调用RAG服务获取并存储用户知识库
+        result = RAGService.get_user_knowledge_text(current_user.id)
+        
+        if result['success']:
+            return api_response(
+                success=True,
+                message=f'知识库同步成功，处理了{result["emails_count"]}封邮件和{result["bindings_count"]}个邮箱绑定',
+                data={
+                    'user_id': result['user_id'],
+                    'emails_count': result['emails_count'],
+                    'bindings_count': result['bindings_count'],
+                    'vector_stored': result['vector_stored'],
+                    'generated_at': result['generated_at']
+                }
+            )
+        else:
+            return api_response(
+                success=False,
+                message=f'知识库同步失败: {result["error"]}'
+            ), 500
+            
+    except Exception as e:
+        logger.error(f"同步知识库失败: {str(e)}")
+        return api_response(
+            success=False,
+            message=f'同步知识库失败: {str(e)}'
+        ), 500
 
 def _call_ai_model(messages):
     """

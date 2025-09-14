@@ -26,6 +26,7 @@
         <button class="sync-btn" @click="syncKnowledgeBase" :disabled="isSyncing">
           <svg
             class="btn-icon"
+            :class="{ spinning: isSyncing }"
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
             fill="none"
@@ -34,9 +35,7 @@
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <path
-              d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"
-            ></path>
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
           </svg>
           {{ isSyncing ? '同步中...' : '同步知识库' }}
         </button>
@@ -320,6 +319,7 @@ const userInput = ref('')
 const messages = ref([])
 const isLoading = ref(false)
 const isSyncing = ref(false)
+
 const messagesContainer = ref(null)
 const messageInput = ref(null)
 const chatHistory = ref([])
@@ -659,35 +659,7 @@ const loadChat = async (chatId) => {
   }
 }
 
-// 同步知识库
-const syncKnowledgeBase = async () => {
-  if (isSyncing.value) return
 
-  isSyncing.value = true
-  try {
-    const response = await api.get('/rag/knowledge/text')
-
-    if (response.success) {
-      showToast({
-        message: `知识库同步成功！已处理 ${response.data.bindings_count} 个邮箱绑定和 ${response.data.emails_count} 封邮件`,
-        type: 'success',
-      })
-    } else {
-      showToast({
-        message: response.message || '知识库同步失败',
-        type: 'error',
-      })
-    }
-  } catch (error) {
-    console.error('同步知识库失败:', error)
-    showToast({
-      message: error.message || '同步知识库时发生错误',
-      type: 'error',
-    })
-  } finally {
-    isSyncing.value = false
-  }
-}
 
 // 新建对话
 const newConversation = () => {
@@ -741,6 +713,33 @@ const clearConversation = async () => {
       message: '删除对话失败，请重试',
       type: 'error',
     })
+  }
+}
+
+// 同步知识库
+const syncKnowledgeBase = async () => {
+  if (isSyncing.value) return
+
+  isSyncing.value = true
+  try {
+    const response = await api.get('/rag/knowledge/text')
+    
+    if (response.success) {
+      showToast({
+        message: '知识库同步成功',
+        type: 'success',
+      })
+    } else {
+      throw new Error(response.message || '同步失败')
+    }
+  } catch (error) {
+    console.error('同步知识库失败:', error)
+    showToast({
+      message: '同步知识库失败，请重试',
+      type: 'error',
+    })
+  } finally {
+    isSyncing.value = false
   }
 }
 
@@ -879,8 +878,8 @@ watch(() => {}, cleanup, { flush: 'post' })
 }
 
 .new-chat-btn,
-.sync-btn,
-.clear-btn {
+.clear-btn,
+.sync-btn {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -903,24 +902,41 @@ watch(() => {}, cleanup, { flush: 'post' })
   box-shadow: 0 4px 6px rgba(59, 130, 246, 0.4);
 }
 
-.sync-btn {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  border: none;
-  color: white;
-  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);
+.clear-btn {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  color: #374151;
 }
 
-.sync-btn:hover:not(:disabled) {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
-  box-shadow: 0 4px 6px rgba(16, 185, 129, 0.4);
+.clear-btn:hover {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+}
+
+.sync-btn {
+  background: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  border: none;
+  color: white;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3);
+}
+
+.sync-btn:hover {
+  background: linear-gradient(135deg, #047857 0%, #059669 100%);
+  box-shadow: 0 4px 6px rgba(5, 150, 105, 0.4);
 }
 
 .sync-btn:disabled {
-  opacity: 0.6;
+  background: #9ca3af;
   cursor: not-allowed;
+  box-shadow: none;
 }
 
-.sync-btn .spinning {
+.sync-btn:disabled:hover {
+  background: #9ca3af;
+  box-shadow: none;
+}
+
+.spinning {
   animation: spin 1s linear infinite;
 }
 
@@ -931,17 +947,6 @@ watch(() => {}, cleanup, { flush: 'post' })
   to {
     transform: rotate(360deg);
   }
-}
-
-.clear-btn {
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  color: #374151;
-}
-
-.clear-btn:hover {
-  background: #e5e7eb;
-  border-color: #d1d5db;
 }
 
 .btn-icon {

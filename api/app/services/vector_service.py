@@ -84,7 +84,25 @@ class VectorService:
             logger.info(f"嵌入模型加载成功: {model_name}")
         except Exception as e:
             logger.error(f"嵌入模型加载失败: {e}")
-            raise
+            # 如果模型加载失败，尝试清理缓存并重新下载
+            try:
+                import shutil
+                model_cache_path = os.path.join(cache_dir, model_name.replace('/', '_'))
+                if os.path.exists(model_cache_path):
+                    logger.info(f"清理损坏的模型缓存: {model_cache_path}")
+                    shutil.rmtree(model_cache_path)
+                
+                # 重新下载模型
+                logger.info(f"重新下载嵌入模型: {model_name}")
+                self._embedding_model = SentenceTransformer(
+                    model_name,
+                    cache_folder=cache_dir,
+                    device=device
+                )
+                logger.info(f"嵌入模型重新下载成功: {model_name}")
+            except Exception as retry_e:
+                logger.error(f"重新下载嵌入模型失败: {retry_e}")
+                raise retry_e
     
     def split_text(self, text: str, chunk_size: int = None, chunk_overlap: int = None) -> List[str]:
         """

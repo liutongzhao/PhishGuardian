@@ -505,12 +505,7 @@ onMounted(() => {
 
   autoDetectionLogic()
 
-  // 初始化WebSocket连接（只在未连接时连接）
-  if (!wsManager.isConnected) {
-    wsManager.connect()
-  }
-
-  // 注册事件监听器（每次都需要注册，因为组件可能重新挂载）
+  // 注册事件监听器（WebSocket连接由全局App.vue管理）
   wsManager.on('new_email_notification', handleNewEmails)
   wsManager.on('detection_completed', handleDetectionCompleted)
 })
