@@ -10,7 +10,7 @@ import request from '@/utils/api'
 export function getPendingEmails() {
   return request({
     url: '/email/pending',
-    method: 'get'
+    method: 'get',
   })
 }
 
@@ -21,7 +21,7 @@ export function getPendingEmails() {
 export function getDetectingEmails() {
   return request({
     url: '/email/detecting',
-    method: 'get'
+    method: 'get',
   })
 }
 
@@ -32,7 +32,7 @@ export function getDetectingEmails() {
 export function getPendingEmailCount() {
   return request({
     url: '/email/pending/count',
-    method: 'get'
+    method: 'get',
   })
 }
 
@@ -49,8 +49,8 @@ export function updateEmailStatus(emailId, status, result = null) {
     method: 'put',
     data: {
       status,
-      result
-    }
+      result,
+    },
   })
 }
 
@@ -61,7 +61,7 @@ export function updateEmailStatus(emailId, status, result = null) {
 export function getEmailBindings() {
   return request({
     url: '/email/bindings',
-    method: 'get'
+    method: 'get',
   })
 }
 
@@ -74,7 +74,7 @@ export function addEmailBinding(data) {
   return request({
     url: '/email/bindings',
     method: 'post',
-    data
+    data,
   })
 }
 
@@ -86,7 +86,7 @@ export function addEmailBinding(data) {
 export function deleteEmailBinding(bindingId) {
   return request({
     url: `/email/bindings/${bindingId}`,
-    method: 'delete'
+    method: 'delete',
   })
 }
 
@@ -97,7 +97,7 @@ export function deleteEmailBinding(bindingId) {
 export function getEmailProviders() {
   return request({
     url: '/email/providers',
-    method: 'get'
+    method: 'get',
   })
 }
 
@@ -108,7 +108,7 @@ export function getEmailProviders() {
 export function fetchEmails() {
   return request({
     url: '/email/fetch',
-    method: 'post'
+    method: 'get',
   })
 }
 
@@ -120,7 +120,7 @@ export function fetchEmails() {
 export function getEmailDetail(emailId) {
   return request({
     url: `/email/${emailId}`,
-    method: 'get'
+    method: 'get',
   })
 }
 
@@ -136,8 +136,8 @@ export function batchUpdateEmailStatus(emailIds, status) {
     method: 'put',
     data: {
       email_ids: emailIds,
-      status
-    }
+      status,
+    },
   })
 }
 
@@ -148,7 +148,7 @@ export function batchUpdateEmailStatus(emailIds, status) {
 export function getEmailStats() {
   return request({
     url: '/email/stats',
-    method: 'get'
+    method: 'get',
   })
 }
 
@@ -160,7 +160,7 @@ export function getEmailStats() {
 export function initializeDetectionWeights(emailId) {
   return request({
     url: `/email/${emailId}/initialize-weights`,
-    method: 'post'
+    method: 'post',
   })
 }
 
@@ -172,7 +172,7 @@ export function initializeDetectionWeights(emailId) {
 export function detectEmailContent(emailId) {
   return request({
     url: `/email/${emailId}/detect/content`,
-    method: 'post'
+    method: 'post',
   })
 }
 
@@ -184,7 +184,7 @@ export function detectEmailContent(emailId) {
 export function detectEmailUrls(emailId) {
   return request({
     url: `/email/${emailId}/detect/url`,
-    method: 'post'
+    method: 'post',
   })
 }
 
@@ -196,7 +196,7 @@ export function detectEmailUrls(emailId) {
 export function detectEmailMetadata(emailId) {
   return request({
     url: `/email/${emailId}/detect/metadata`,
-    method: 'post'
+    method: 'post',
   })
 }
 
@@ -208,7 +208,7 @@ export function detectEmailMetadata(emailId) {
 export function getDetectionStatus(emailId) {
   return request({
     url: `/email/${emailId}/detect/status`,
-    method: 'get'
+    method: 'get',
   })
 }
 
@@ -218,7 +218,7 @@ export function getDetectionStatus(emailId) {
 export const getSessionState = () => {
   return request({
     url: '/detection/session',
-    method: 'GET'
+    method: 'GET',
   })
 }
 
@@ -227,7 +227,7 @@ export const updateSessionState = (stateData) => {
   return request({
     url: '/detection/session',
     method: 'PUT',
-    data: stateData
+    data: stateData,
   })
 }
 
@@ -236,7 +236,7 @@ export const updateDetectionState = (detectionType, state) => {
   return request({
     url: `/detection/session/detection/${detectionType}`,
     method: 'PUT',
-    data: { state }
+    data: { state },
   })
 }
 
@@ -245,7 +245,7 @@ export const updateAiAnalysisState = (state) => {
   return request({
     url: '/detection/session/ai-analysis',
     method: 'PUT',
-    data: { state }
+    data: { state },
   })
 }
 
@@ -254,7 +254,7 @@ export const updateSessionStage = (stage, status = null) => {
   return request({
     url: '/detection/session/stage',
     method: 'PUT',
-    data: { stage, status }
+    data: { stage, status },
   })
 }
 
@@ -262,7 +262,7 @@ export const updateSessionStage = (stage, status = null) => {
 export const resetSessionState = () => {
   return request({
     url: '/detection/session/reset',
-    method: 'POST'
+    method: 'POST',
   })
 }
 
@@ -272,7 +272,7 @@ export const resetSessionState = () => {
 export const getDetectionOverview = () => {
   return request({
     url: '/email/detection-overview',
-    method: 'GET'
+    method: 'GET',
   })
 }
 
@@ -280,6 +280,14 @@ export const getDetectionOverview = () => {
 export const startEmailDetection = (emailId) => {
   return request({
     url: `/email/${emailId}/start-detection`,
-    method: 'POST'
+    method: 'POST',
+  })
+}
+
+// 启动第三阶段检测（综合分析）
+export const startStage3Detection = (emailId) => {
+  return request({
+    url: `/email/${emailId}/start-stage3-detection`,
+    method: 'POST',
   })
 }

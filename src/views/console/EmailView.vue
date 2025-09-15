@@ -21,6 +21,7 @@
           </svg>
           刷新邮件
         </button>
+
       </div>
     </div>
 
@@ -448,7 +449,9 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
+import websocketManager from '@/utils/websocket'
+import { showToast } from '@/utils/toast'
 
 defineOptions({
   name: 'EmailView',
@@ -627,6 +630,47 @@ const shouldShowPreviewTooltip = (previewText) => {
   // 如果文本长度超过120个字符，则显示悬浮提示
   return previewText.length > 120
 }
+
+// WebSocket消息处理器
+const handleNewEmailsMessage = (data) => {
+  console.log('EmailView收到新邮件通知:', data)
+  
+  // 显示toast提示
+  if (data && data.email_count > 0) {
+    showToast({
+      message: data.message || `收到 ${data.email_count} 封新邮件`,
+      type: 'info',
+      duration: 3000
+    })
+  }
+  
+  // 这里可以添加刷新邮件列表的逻辑
+  // 例如：refreshEmailList()
+}
+
+// 组件挂载时注册消息处理器
+onMounted(() => {
+  console.log('EmailView组件已挂载，注册新邮件消息处理器')
+  
+  // 注册新邮件消息处理器
+  websocketManager.onMessage('new_emails', handleNewEmailsMessage)
+  
+  // 确保WebSocket已连接（如果未连接则连接）
+  if (!websocketManager.getConnectionStatus()) {
+    console.log('WebSocket未连接，正在连接...')
+    websocketManager.connect()
+  } else {
+    console.log('WebSocket已连接，直接注册消息处理器')
+  }
+})
+
+// 组件卸载时清理WebSocket
+onUnmounted(() => {
+  console.log('EmailView组件即将卸载，清理WebSocket')
+  
+  // 移除消息处理器
+  websocketManager.offMessage('new_emails', handleNewEmailsMessage)
+})
 </script>
 
 <style scoped>

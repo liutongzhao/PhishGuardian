@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Any, Optional
 from app import db
 from app.models.email_detection_detail import EmailDetectionDetail, DetectionStatus
-
+from app.services.websocket_service import WebSocketService
 from app.models.email import Email
 import logging
 
@@ -72,10 +72,10 @@ class AsyncDetectionService:
                 # 更新检测结果
                 self._update_detection_result(email_id, detection_type, result)
                 
-                # 检查是否所有检测都已完成，如果是则发送WebSocket通知
-                detail = EmailDetectionDetail.find_by_email_id(email_id)
-                if detail and self._is_all_detection_completed(detail):
-                    self._send_websocket_notification(email_id, detail)
+                # 检查是否所有检测都已完成
+                # detail = EmailDetectionDetail.find_by_email_id(email_id)
+                # if detail and self._is_all_detection_completed(detail):
+                #     print(f"邮件 {email_id} 所有检测已完成")
                 
                 # 检测完成
             
@@ -147,8 +147,72 @@ class AsyncDetectionService:
                     reason=reason
                 )
                 detail.metadata_detection_status = DetectionStatus.COMPLETED.value
+                
+            elif detection_type == 'synthesis':
+                # 处理第三阶段综合分析结果
+                final_result = result.get('final', {})
+                final_verdict = final_result.get('final_verdict', 'Safe')
+                final_score = final_result.get('final_score', 0.5)
+                explanation = result.get('explanation', '综合分析完成')
+                
+                # 判断是否为钓鱼邮件
+                is_phishing = final_verdict == 'Phishing'
+                
+                # 更新最终结果
+                detail.update_final_result(
+                    fusion_score=final_score,
+                    is_phishing=is_phishing,
+                    reason=explanation
+                )
+                
+                # 设置检测阶段为第四阶段（完成）
+                # detail.detection_stage = 4
+                
+                # 更新邮件检测状态为完成
+                # email = Email.query.get(email_id)
+                # if email:
+                #     from app.models.email import EmailDetectionStatus
+                #     email.detection_status = EmailDetectionStatus.COMPLETED.value
             
             db.session.commit()
+            
+            # 发送检测完成通知
+            try:
+                email = Email.query.get(email_id)
+                if email:
+                    if detection_type == 'synthesis':
+                        # 第三阶段综合分析完成通知
+                        final_result = result.get('final', {})
+                        WebSocketService.push_message(
+                            user_id=email.user_id,
+                            message_type='synthesis_completed',
+                            data={
+                                'email_id': email_id,
+                                'detection_type': detection_type,
+                                'is_phishing': final_result.get('verdict', 'Safe') == 'Phishing',
+                                'fusion_score': final_result.get('phishing_probability', 0.5),
+                                'explanation': result.get('explanation', '综合分析完成'),
+                                'message': '第三阶段综合分析已完成'
+                            }
+                        )
+                        print(f"已发送第三阶段综合分析完成通知给用户{email.user_id}")
+                    else:
+                        # 普通检测完成通知
+                        WebSocketService.push_message(
+                            user_id=email.user_id,
+                            message_type='detection_completed',
+                            data={
+                                'email_id': email_id,
+                                'detection_type': detection_type,
+                                'is_phishing': is_phishing,
+                                'probability': phishing_probability,
+                                'confidence': confidence,
+                                'message': f'{detection_type}检测已完成'
+                            }
+                        )
+                        print(f"已发送{detection_type}检测完成通知给用户{email.user_id}")
+            except Exception as e:
+                print(f"发送检测完成通知失败: {str(e)}")
             
         except Exception as e:
             db.session.rollback()
@@ -189,31 +253,22 @@ class AsyncDetectionService:
             detection_detail.metadata_detection_status
         ]
         
-        return all(status in [2, 3] for status in statuses)
+        all_completed = all(status in [2, 3] for status in statuses)
+        
+        # 如果所有检测都完成了，且当前是第二阶段，则设置parallel_detection_completed为True
+        if all_completed and detection_detail.detection_stage == 2:
+            detection_detail.parallel_detection_completed = True
+            db.session.add(detection_detail)
+            try:
+                db.session.commit()
+                print(f"邮件 {detection_detail.email_id} 第二阶段并行检测已全部完成")
+            except Exception as e:
+                db.session.rollback()
+                print(f"更新parallel_detection_completed失败: {str(e)}")
+        
+        return all_completed
     
-    def _send_websocket_notification(self, email_id: int, detection_detail):
-        """发送WebSocket通知"""
-        try:
-            from app.utils.websocket import send_websocket_message
-            
-            # 构造消息数据
-            message_data = {
-                'email_id': email_id,
-                'detection_detail': {
-                    'id': detection_detail.id,
-                    'detection_stage': detection_detail.detection_stage,
-                    'content_detection_status': detection_detail.content_detection_status,
-                    'url_detection_status': detection_detail.url_detection_status,
-                    'metadata_detection_status': detection_detail.metadata_detection_status
-                },
-                'message': f'邮件 {email_id} 检测完成'
-            }
-            
-            # 发送WebSocket消息
-            send_websocket_message('detection_completed', message_data)
-            
-        except Exception as e:
-            print(f"发送WebSocket通知失败: {str(e)}")
+    # WebSocket通知方法已移除
     
     def get_task_status(self, email_id: int, detection_type: str) -> Optional[str]:
         """获取任务状态"""

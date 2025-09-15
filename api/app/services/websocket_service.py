@@ -1,31 +1,30 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-WebSocket消息推送服务
+WebSocket推送服务
 """
 
-import json
 import logging
-from typing import Dict, List, Any
-from flask import current_app
 from flask_socketio import SocketIO, emit, join_room, leave_room
+from flask import request
 from app.utils.jwt_utils import JWTUtils
 
 logger = logging.getLogger(__name__)
 
 # 全局SocketIO实例
 socketio = None
-
-# 存储用户连接信息
-user_connections: Dict[int, List[str]] = {}  # user_id -> [session_ids]
-
+# 全局连接用户字典
+connected_users = {}
 
 class WebSocketService:
-    """WebSocket消息推送服务类"""
+    """WebSocket推送服务类"""
+    
+    def __init__(self):
+        pass
     
     @staticmethod
     def init_app(app):
-        """初始化WebSocket服务"""
+        """初始化SocketIO"""
         global socketio
         socketio = SocketIO(
             app,
@@ -34,49 +33,51 @@ class WebSocketService:
         )
         
         # 注册事件处理器
-        WebSocketService._register_handlers()
+        websocket_service = WebSocketService()
+        websocket_service._register_handlers()
         
+        print("WebSocket服务已初始化")
         return socketio
     
-    @staticmethod
-    def _register_handlers():
+    def _register_handlers(self):
         """注册WebSocket事件处理器"""
+        global socketio
         
         @socketio.on('connect')
         def handle_connect(auth):
             """处理客户端连接"""
             try:
                 # 验证JWT token
-                if not auth or 'token' not in auth:
-                    print("WebSocket连接缺少认证token")
+                print(f"WebSocket连接认证信息: {auth}")
+                token = auth.get('token') if auth else None
+                print(f"WebSocket接收到的token: {token[:50] if token else None}...")
+                if not token:
+                    print("WebSocket连接被拒绝：缺少token")
                     return False
                 
-                token = auth['token']
-                user_data = JWTUtils.verify_token(token)
-                
-                if not user_data:
-                    print("WebSocket连接token无效")
+                # 验证token并获取用户信息
+                user_info = JWTUtils.verify_token(token)
+                print(f"Token验证结果: {user_info}")
+                if not user_info:
+                    print("WebSocket连接被拒绝：无效token")
                     return False
                 
-                user_id = user_data['user_id']
+                user_id = user_info.get('user_id')
                 session_id = request.sid
                 
-                # 加入用户房间
-                user_room = f"user_{user_id}"
-                join_room(user_room)
+                # 用户加入自己的房间
+                join_room(f"user_{user_id}")
                 
-                # 记录用户连接
-                if user_id not in user_connections:
-                    user_connections[user_id] = []
-                user_connections[user_id].append(session_id)
+                # 记录连接的用户
+                connected_users[user_id] = session_id
                 
-                print(f"用户 {user_id} 已连接WebSocket，会话ID: {session_id}")
+                print(f"用户 {user_id} 已连接WebSocket，session_id: {session_id}")
                 
                 # 发送连接成功消息
                 emit('connected', {'message': '连接成功', 'user_id': user_id})
                 
             except Exception as e:
-                print(f"WebSocket连接处理错误: {str(e)}")
+                print(f"WebSocket连接处理失败: {e}")
                 return False
         
         @socketio.on('disconnect')
@@ -84,103 +85,59 @@ class WebSocketService:
             """处理客户端断开连接"""
             try:
                 session_id = request.sid
-                
-                # 从用户连接记录中移除
-                disconnected_user = None
-                for user_id, sessions in list(user_connections.items()):
-                    if session_id in sessions:
-                        sessions.remove(session_id)
-                        disconnected_user = user_id
-                        
-                        if not sessions:  # 如果用户没有其他连接，删除记录
-                            del user_connections[user_id]
-                        
-                        print(f"用户 {user_id} 断开WebSocket连接，会话ID: {session_id}")
+                # 找到断开连接的用户
+                user_id = None
+                for uid, sid in connected_users.items():
+                    if sid == session_id:
+                        user_id = uid
                         break
-                        
+                
+                if user_id:
+                    # 离开房间
+                    leave_room(f"user_{user_id}")
+                    # 移除连接记录
+                    del connected_users[user_id]
+                    print(f"用户 {user_id} 已断开WebSocket连接")
+                else:
+                    print(f"未知用户断开WebSocket连接，session_id: {session_id}")
+                    
             except Exception as e:
-                print(f"WebSocket断开连接处理错误: {str(e)}")
+                print(f"WebSocket断开连接处理失败: {e}")
+    
+    @staticmethod
+    def push_message(user_id, message_type, data):
+        """向指定用户推送消息"""
+        global socketio
+        if not socketio:
+            print("WebSocket服务未初始化")
+            return False
         
-
-    
-    @staticmethod
-    def send_new_email_notification(user_id: int, email_count: int):
-        """向指定用户发送新邮件通知"""
         try:
-            print(f"开始发送WebSocket通知 - 用户ID: {user_id}, 邮件数量: {email_count}")
-            
-            if not socketio:
-                print("SocketIO未初始化，无法发送消息")
-                return
-            
-            # 检查用户是否在线
-            is_connected = WebSocketService.is_user_connected(user_id)
-            print(f"用户 {user_id} 连接状态: {is_connected}")
-            print(f"当前连接的用户: {list(user_connections.keys())}")
-            
+            room = f"user_{user_id}"
             message = {
-                'type': 'new_emails',
-                'message': f'检测到 {email_count} 封新邮件',
-                'email_count': email_count,
-                'timestamp': datetime.now().isoformat()
+                'type': message_type,
+                'data': data,
+                'timestamp': int(__import__('time').time() * 1000)
             }
             
-            # 发送到用户房间
-            user_room = f"user_{user_id}"
-            print(f"发送WebSocket消息到房间: {user_room}, 消息内容: {message}")
-            socketio.emit('new_email_notification', message, room=user_room)
-            
-            print(f"已向用户 {user_id} 发送新邮件通知: {email_count} 封")
+            socketio.emit('push_message', message, room=room)
+            print(f"向用户 {user_id} 推送消息: {message_type}")
+            return True
             
         except Exception as e:
-            print(f"发送新邮件通知错误: {str(e)}")
+            print(f"推送消息失败: {e}")
+            return False
     
     @staticmethod
-    def send_detection_completed(user_id: int, data: dict):
-        """发送检测完成消息到用户房间（通过新邮件通知机制）"""
-        try:
-            print(f"开始发送检测完成通知 - 用户ID: {user_id}, 邮件ID: {data.get('email_id')}")
-            
-            if not socketio:
-                print("SocketIO未初始化，无法发送消息")
-                return
-            
-            # 检查用户是否在线
-            is_connected = WebSocketService.is_user_connected(user_id)
-            print(f"用户 {user_id} 连接状态: {is_connected}")
-            print(f"当前连接的用户: {list(user_connections.keys())}")
-            
-            # 构造消息（使用新邮件通知的格式，但添加检测完成的标识）
-            message = {
-                'type': 'detection_completed',  # 标识这是检测完成消息
-                'email_id': data.get('email_id'),
-                'detection_detail': data.get('detection_detail'),
-                'message': data.get('message', '邮件检测完成'),
-                'timestamp': datetime.now().isoformat()
-            }
-            
-            # 发送到用户房间（使用new_email_notification事件，前端可以根据type字段区分）
-            user_room = f"user_{user_id}"
-            print(f"发送检测完成消息到房间: {user_room}, 消息内容: {message}")
-            socketio.emit('new_email_notification', message, room=user_room)
-            
-            print(f"已向用户 {user_id} 发送检测完成消息: 邮件 {data.get('email_id')}")
-            
-        except Exception as e:
-            print(f"发送检测完成消息错误: {str(e)}")
-    
+    def push_email_notification(user_id, email_count, success_count, error_count):
+        """推送新邮件通知"""
+        data = {
+            'email_count': email_count,
+            'success_count': success_count,
+            'error_count': error_count,
+            'message': f'成功获取 {email_count} 封新邮件'
+        }
+        return WebSocketService.push_message(user_id, 'new_emails', data)
 
-    @staticmethod
-    def get_connected_users() -> List[int]:
-        """获取当前连接的用户列表"""
-        return list(user_connections.keys())
-    
-    @staticmethod
-    def is_user_connected(user_id: int) -> bool:
-        """检查用户是否在线"""
-        return user_id in user_connections and len(user_connections[user_id]) > 0
-
-
-# 导入必要的模块
-from datetime import datetime
-from flask import request
+# 全局WebSocket服务实例
+websocket_service = WebSocketService()

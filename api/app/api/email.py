@@ -65,6 +65,34 @@ def fetch_emails():
         }), 500
 
 
+@email_bp.route('/test-push', methods=['POST'])
+@token_required
+def test_push_notification(current_user):
+    """测试WebSocket推送通知"""
+    try:
+        from app.services.websocket_service import WebSocketService
+        
+        # 推送测试消息
+        result = WebSocketService.push_email_notification(
+            user_id=current_user.id,
+            email_count=3,
+            success_count=3,
+            error_count=0
+        )
+        
+        return jsonify({
+            'success': True,
+            'message': '测试推送已发送',
+            'push_result': result
+        }), 200
+    
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'测试推送失败: {str(e)}'
+        }), 500
+
+
 
 
 
@@ -169,6 +197,111 @@ def start_email_detection(current_user, email_id):
         return api_response(
             success=False,
             message=f'开始检测失败: {str(e)}'
+        )
+
+
+@email_bp.route('/<int:email_id>/start-stage3-detection', methods=['POST'])
+@token_required
+def start_stage3_detection(current_user, email_id):
+    """开始第三阶段检测（综合分析）"""
+    try:
+        # 获取邮件信息
+        email = Email.query.get(email_id)
+        if not email:
+            return api_response(
+                success=False,
+                message='邮件不存在'
+            )
+        
+        # 检查邮件是否属于当前用户
+        if email.user_id != current_user.id:
+            return api_response(
+                success=False,
+                message='无权限访问该邮件'
+            )
+        
+        # 获取检测详情
+        detail = EmailDetectionDetail.find_by_email_id(email_id)
+        if not detail:
+            return api_response(
+                success=False,
+                message='邮件检测详情不存在'
+            )
+        
+        # 检查是否已完成第二阶段检测
+        # if not detail.parallel_detection_completed:
+        #     return api_response(
+        #         success=False,
+        #         message='第二阶段检测尚未完成，无法开始第三阶段检测'
+        #     )
+        
+        # 设置检测阶段为第三阶段
+        detail.detection_stage = 3
+        db.session.add(detail)
+        db.session.commit()
+        
+        # 准备传递给synthesize_results的参数
+        text_result = {
+            "verdict": "Phishing" if detail.content_is_phishing else "Safe",
+            "phishing_probability": detail.content_phishing_probability,
+            "confidence": detail.content_confidence,
+            "reasons": detail.content_reason or "无检测原因"
+        }
+        
+        url_result = {
+            "verdict": "Phishing" if detail.url_is_phishing else "Safe",
+            "phishing_probability": detail.url_phishing_probability,
+            "confidence": detail.url_confidence,
+            "reasons": detail.url_reason or "无检测原因"
+        }
+        
+        metadata_result = {
+            "verdict": "Phishing" if detail.metadata_is_phishing else "Safe",
+            "phishing_probability": detail.metadata_phishing_probability,
+            "confidence": detail.metadata_confidence,
+            "reasons": detail.metadata_reason or "无检测原因"
+        }
+        
+        weights = {
+            "text": detail.content_weight,
+            "url": detail.url_weight,
+            "metadata": detail.metadata_weight
+        }
+        
+        # 启动异步综合分析任务
+        from app.services.async_detection_service import async_detection_service
+        from app.services.synthesis_agent import synthesize_results
+        from app.services.detection_agents import DEFAULT_API_URL, DEFAULT_API_KEY
+        
+        # 获取API配置
+        api_url = DEFAULT_API_URL
+        api_key = DEFAULT_API_KEY
+        
+        # 提交综合分析任务
+        async_detection_service.submit_detection_task(
+            email_id, 'synthesis',
+            synthesize_results,
+            text_result, url_result, metadata_result, api_url, api_key, weights
+        )
+        
+        return api_response(
+            success=True,
+            message='第三阶段检测已启动',
+            data={
+                'email_id': email_id,
+                'detection_stage': 3,
+                'text_result': text_result,
+                'url_result': url_result,
+                'metadata_result': metadata_result,
+                'weights': weights
+            }
+        )
+        
+    except Exception as e:
+        db.session.rollback()
+        return api_response(
+            success=False,
+            message=f'启动第三阶段检测失败: {str(e)}'
         )
 
 

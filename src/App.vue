@@ -2,7 +2,7 @@
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
-import wsManager from '@/utils/websocket'
+import websocketManager from '@/utils/websocket'
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -25,48 +25,42 @@ const closeUserDropdown = () => {
 // 处理退出登录
 const handleLogout = async () => {
   closeUserDropdown()
-  // 断开WebSocket连接
-  wsManager.disconnect()
   await authStore.logout()
   router.push('/')
-}
-
-// 全局WebSocket连接管理
-const initializeWebSocket = () => {
-  if (authStore.isAuthenticated && !wsManager.isConnected) {
-    wsManager.connect()
-  }
-}
-
-const cleanupWebSocket = () => {
-  if (wsManager.isConnected) {
-    wsManager.disconnect()
-  }
 }
 
 // 监听认证状态变化
 watch(
   () => authStore.isAuthenticated,
   (isAuthenticated) => {
+    console.log('App.vue: 认证状态变化:', isAuthenticated)
     if (isAuthenticated) {
       // 用户登录时连接WebSocket
-      initializeWebSocket()
+      console.log('App.vue: 用户登录，连接WebSocket')
+      websocketManager.connect()
     } else {
       // 用户退出时断开WebSocket
-      cleanupWebSocket()
+      console.log('App.vue: 用户退出，断开WebSocket')
+      websocketManager.disconnect()
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
-// 组件挂载时初始化WebSocket
+// 组件挂载时的初始化
 onMounted(() => {
-  initializeWebSocket()
+  // 如果用户已认证，初始化WebSocket连接
+  if (authStore.isAuthenticated) {
+    console.log('App.vue: 用户已认证，初始化WebSocket连接')
+    websocketManager.connect()
+  }
 })
 
-// 组件卸载时清理WebSocket
+// 组件卸载时的清理
 onUnmounted(() => {
-  cleanupWebSocket()
+  // 断开WebSocket连接
+  console.log('App.vue: 组件卸载，断开WebSocket')
+  websocketManager.disconnect()
 })
 
 // 点击外部关闭下拉菜单

@@ -15,15 +15,10 @@ load_dotenv(os.path.join(basedir, '.env'))
 # 创建应用实例
 app = create_app()
 
-# 获取socketio实例
-from app import socketio
-
 if __name__ == '__main__':
-    # 开发环境下使用SocketIO运行
-    socketio.run(
-        app,
+    # 开发环境下运行
+    app.run(
         host=os.environ.get('HOST', '0.0.0.0'),
         port=int(os.environ.get('PORT', 5000)),
-        debug=os.environ.get('FLASK_ENV') == 'development',
-        allow_unsafe_werkzeug=True
+        debug=os.environ.get('FLASK_ENV') == 'development'
     )

@@ -2,38 +2,84 @@
   <div class="email-detection">
     <!-- 页面标题 -->
     <div class="page-header">
-      <h1 class="page-title">邮件检测</h1>
-      <p class="page-subtitle">实时监控邮件安全检测流程</p>
+      <div class="header-content">
+        <div class="title-section">
+          <h1 class="page-title">邮件检测</h1>
+          <p class="page-subtitle">实时监控邮件安全检测流程</p>
+        </div>
+        <div class="action-section">
+          <button class="fetch-email-btn" @click="handleFetchEmails" :disabled="isFetching">
+            <svg
+              v-if="!isFetching"
+              class="btn-icon"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7,10 12,15 17,10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            <div v-else class="loading-spinner"></div>
+            {{ isFetching ? '获取中...' : '获取邮件' }}
+          </button>
+        </div>
+      </div>
+      <!-- 新邮件提示 -->
+      <div v-if="newEmailsMessage" class="new-emails-notification">
+        {{ newEmailsMessage }}
+      </div>
     </div>
 
     <!-- 3D检测流程容器 -->
     <div class="detection-container">
       <!-- 第一阶段：开始检测 -->
-      <div
-        class="stage stage-start"
-        :class="{ active: detectingDetail && detectingDetail.detection_stage === 1 }"
-      >
+      <div class="stage stage-start" :class="getStageClass(1)">
         <div class="stage-header">
           <div class="stage-number">01</div>
           <h3 class="stage-title">开始检测</h3>
         </div>
 
         <div class="stage-content">
-          <!-- 正在检测的邮件 -->
-          <div v-if="detectingEmail" class="current-email">
-            <div class="email-info">
-              <div class="email-from">
-                <span class="label">发件人:</span>
-                <span class="value">{{ detectingEmail.sender }}</span>
+          <!-- 正在检测邮件 -->
+          <div v-if="detectingEmail" class="detecting-email">
+            <div class="email-card current-detecting">
+              <div class="email-header">
+                <div class="email-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                      d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+                    />
+                    <polyline points="22,6 12,13 2,6" />
+                  </svg>
+                </div>
+                <div class="detecting-badge">
+                  <div class="pulse-dot"></div>
+                  正在检测
+                </div>
               </div>
-              <div class="email-subject">
-                <span class="label">主题:</span>
-                <span class="value">{{ detectingEmail.subject }}</span>
+              <div class="email-info">
+                <h4 class="email-subject">{{ detectingEmail.subject || '无主题' }}</h4>
+                <p class="email-sender">发送人: {{ detectingEmail.sender || '未知' }}</p>
               </div>
             </div>
-            <div class="email-status">
-              <div class="status-indicator processing"></div>
-              <span>正在检测中...</span>
+          </div>
+
+          <!-- 待检测邮件列表 -->
+          <div v-if="pendingEmails.length > 0" class="pending-emails">
+            <h4 class="pending-title">待检测邮件 ({{ pendingEmails.length }})</h4>
+            <div class="pending-list">
+              <div v-for="email in pendingEmails" :key="email.id" class="email-card pending">
+                <div class="email-info">
+                  <h5 class="email-subject">{{ email.subject || '无主题' }}</h5>
+                  <p class="email-sender">{{ email.sender || '未知' }}</p>
+                </div>
+                <div class="pending-status">
+                  <div class="status-dot"></div>
+                  等待中
+                </div>
+              </div>
             </div>
           </div>
 
@@ -50,20 +96,6 @@
             <p>暂无待检测邮件</p>
             <p class="sub-text">系统将自动检测新收到的邮件</p>
           </div>
-
-          <!-- 待检测队列 -->
-          <div v-if="pendingEmails.length > 0" class="pending-queue">
-            <h4 class="queue-title">待检测队列 ({{ pendingEmails.length }})</h4>
-            <div class="queue-list">
-              <div v-for="email in pendingEmails.slice(0, 3)" :key="email.id" class="queue-item">
-                <div class="queue-dot"></div>
-                <span class="queue-subject">{{ email.subject }}</span>
-              </div>
-              <div v-if="pendingEmails.length > 3" class="queue-more">
-                还有 {{ pendingEmails.length - 3 }} 封邮件等待检测
-              </div>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -75,10 +107,7 @@
       </div>
 
       <!-- 第二阶段：并行检测 -->
-      <div
-        class="stage stage-parallel"
-        :class="{ active: detectingDetail && detectingDetail.detection_stage === 2 }"
-      >
+      <div class="stage stage-parallel" :class="getStageClass(2)">
         <div class="stage-header">
           <div class="stage-number">02</div>
           <h3 class="stage-title">并行检测</h3>
@@ -87,9 +116,11 @@
         <div class="stage-content">
           <div class="parallel-detections">
             <!-- 邮件正文检测 -->
-            <div class="detection-circle" :class="getModuleStatusClass('content')">
+            <div class="detection-circle" :class="getDetectionClass('content')" 
+                 v-if="detectingDetail && (detectingDetail.content_detection_status === 1 || (detectingDetail.content_detection_status === 2 && detectingDetail.content_reason))" 
+                 :title="detectingDetail.content_detection_status === 1 ? '正在检测邮件内容...' : detectingDetail.content_reason">
               <div class="circle-container">
-                <div class="circle-progress" :style="getCircleProgressStyle('content')">
+                <div class="circle-progress" :style="getProgressStyle('content')">
                   <div class="circle-inner">
                     <div class="module-icon">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -102,18 +133,31 @@
                     </div>
                     <div class="module-info">
                       <h4 class="module-title">正文检测</h4>
-                      <div class="module-details">
-                        <div v-if="getModuleWeight('content')" class="weight-info">
-                          权重: {{ getModuleWeight('content') }}%
-                        </div>
-                        <div v-if="getModuleProbability('content')" class="probability-info">
-                          概率: {{ getModuleProbability('content') }}%
-                        </div>
-                        <div v-if="getModuleReason('content')" class="reason-info">
-                          {{ getModuleReason('content') }}
-                        </div>
-                      </div>
-                      <p class="module-status">{{ getModuleStatusText('content') }}</p>
+                      <div class="module-details">{{ getDetectionDetails('content') }}</div>
+                      <p class="module-status" :class="getDetectionStatusClass('content')">{{ getDetectionStatus('content') }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- 邮件正文检测（无提示时） -->
+            <div v-else class="detection-circle" :class="getDetectionClass('content')">
+              <div class="circle-container">
+                <div class="circle-progress" :style="getProgressStyle('content')">
+                  <div class="circle-inner">
+                    <div class="module-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                        <polyline points="14,2 14,8 20,8" />
+                        <line x1="16" y1="13" x2="8" y2="13" />
+                        <line x1="16" y1="17" x2="8" y2="17" />
+                        <polyline points="10,9 9,9 8,9" />
+                      </svg>
+                    </div>
+                    <div class="module-info">
+                      <h4 class="module-title">正文检测</h4>
+                      <div class="module-details">{{ getDetectionDetails('content') }}</div>
+                      <p class="module-status" :class="getDetectionStatusClass('content')">{{ getDetectionStatus('content') }}</p>
                     </div>
                   </div>
                 </div>
@@ -121,9 +165,11 @@
             </div>
 
             <!-- URL检测 -->
-            <div class="detection-circle" :class="getModuleStatusClass('url')">
+            <div class="detection-circle" :class="getDetectionClass('url')" 
+                 v-if="detectingDetail && (detectingDetail.url_detection_status === 1 || (detectingDetail.url_detection_status === 2 && detectingDetail.url_reason))" 
+                 :title="detectingDetail.url_detection_status === 1 ? '正在检测URL链接...' : detectingDetail.url_reason">
               <div class="circle-container">
-                <div class="circle-progress" :style="getCircleProgressStyle('url')">
+                <div class="circle-progress" :style="getProgressStyle('url')">
                   <div class="circle-inner">
                     <div class="module-icon">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -133,18 +179,28 @@
                     </div>
                     <div class="module-info">
                       <h4 class="module-title">URL检测</h4>
-                      <div class="module-details">
-                        <div v-if="getModuleWeight('url')" class="weight-info">
-                          权重: {{ getModuleWeight('url') }}%
-                        </div>
-                        <div v-if="getModuleProbability('url')" class="probability-info">
-                          概率: {{ getModuleProbability('url') }}%
-                        </div>
-                        <div v-if="getModuleReason('url')" class="reason-info">
-                          {{ getModuleReason('url') }}
-                        </div>
-                      </div>
-                      <p class="module-status">{{ getModuleStatusText('url') }}</p>
+                      <div class="module-details">{{ getDetectionDetails('url') }}</div>
+                      <p class="module-status" :class="getDetectionStatusClass('url')">{{ getDetectionStatus('url') }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- URL检测（无提示时） -->
+            <div v-else class="detection-circle" :class="getDetectionClass('url')">
+              <div class="circle-container">
+                <div class="circle-progress" :style="getProgressStyle('url')">
+                  <div class="circle-inner">
+                    <div class="module-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                      </svg>
+                    </div>
+                    <div class="module-info">
+                      <h4 class="module-title">URL检测</h4>
+                      <div class="module-details">{{ getDetectionDetails('url') }}</div>
+                      <p class="module-status" :class="getDetectionStatusClass('url')">{{ getDetectionStatus('url') }}</p>
                     </div>
                   </div>
                 </div>
@@ -152,9 +208,11 @@
             </div>
 
             <!-- 元数据检测 -->
-            <div class="detection-circle" :class="getModuleStatusClass('metadata')">
+            <div class="detection-circle" :class="getDetectionClass('metadata')" 
+                 v-if="detectingDetail && (detectingDetail.metadata_detection_status === 1 || (detectingDetail.metadata_detection_status === 2 && detectingDetail.metadata_reason))" 
+                 :title="detectingDetail.metadata_detection_status === 1 ? '正在检测邮件元数据...' : detectingDetail.metadata_reason">
               <div class="circle-container">
-                <div class="circle-progress" :style="getCircleProgressStyle('metadata')">
+                <div class="circle-progress" :style="getProgressStyle('metadata')">
                   <div class="circle-inner">
                     <div class="module-icon">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -163,18 +221,27 @@
                     </div>
                     <div class="module-info">
                       <h4 class="module-title">元数据检测</h4>
-                      <div class="module-details">
-                        <div v-if="getModuleWeight('metadata')" class="weight-info">
-                          权重: {{ getModuleWeight('metadata') }}%
-                        </div>
-                        <div v-if="getModuleProbability('metadata')" class="probability-info">
-                          概率: {{ getModuleProbability('metadata') }}%
-                        </div>
-                        <div v-if="getModuleReason('metadata')" class="reason-info">
-                          {{ getModuleReason('metadata') }}
-                        </div>
-                      </div>
-                      <p class="module-status">{{ getModuleStatusText('metadata') }}</p>
+                      <div class="module-details">{{ getDetectionDetails('metadata') }}</div>
+                      <p class="module-status" :class="getDetectionStatusClass('metadata')">{{ getDetectionStatus('metadata') }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <!-- 元数据检测（无提示时） -->
+            <div v-else class="detection-circle" :class="getDetectionClass('metadata')">
+              <div class="circle-container">
+                <div class="circle-progress" :style="getProgressStyle('metadata')">
+                  <div class="circle-inner">
+                    <div class="module-icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+                      </svg>
+                    </div>
+                    <div class="module-info">
+                      <h4 class="module-title">元数据检测</h4>
+                      <div class="module-details">{{ getDetectionDetails('metadata') }}</div>
+                      <p class="module-status" :class="getDetectionStatusClass('metadata')">{{ getDetectionStatus('metadata') }}</p>
                     </div>
                   </div>
                 </div>
@@ -192,10 +259,7 @@
       </div>
 
       <!-- 第三阶段：AI判断 -->
-      <div
-        class="stage stage-ai"
-        :class="{ active: detectingDetail && detectingDetail.detection_stage === 3 }"
-      >
+      <div class="stage stage-ai" :class="getStageClass(3)">
         <div class="stage-header">
           <div class="stage-number">03</div>
           <h3 class="stage-title">AI综合判断</h3>
@@ -226,10 +290,7 @@
       <div class="final-line"></div>
 
       <!-- 第四阶段：信息提取 -->
-      <div
-        class="stage stage-extract"
-        :class="{ active: detectingDetail && detectingDetail.detection_stage === 4 }"
-      >
+      <div class="stage stage-extract" :class="getStageClass(4)">
         <div class="stage-header">
           <div class="stage-number">04</div>
           <h3 class="stage-title">信息提取</h3>
@@ -256,155 +317,161 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
-import { getDetectionOverview, startEmailDetection } from '@/api/email'
-import wsManager from '@/utils/websocket'
+import { ref } from 'vue'
+import { fetchEmails, getDetectionOverview } from '@/api/email'
+import { showSuccess, showError, showInfo } from '@/utils/toast'
 
-// 响应式变量
-const detectingEmail = ref(null)
+// 响应式数据
+const isFetching = ref(false)
+const newEmailsMessage = ref('')
+
+// 检测数据响应式变量
 const detectingDetail = ref(null)
+const detectingEmail = ref(null)
 const pendingEmails = ref([])
-const loading = ref(false)
 
-// 获取检测概览数据
-const loadDetectionOverview = async () => {
-  try {
-    loading.value = true
-    const response = await getDetectionOverview()
+// 计算阶段样式类
+const getStageClass = (stageNumber) => {
+  if (!detectingDetail.value || !detectingDetail.value.detection_stage) {
+    return 'stage-tilted' // 默认倾斜状态
+  }
 
-    if (response.success) {
-      detectingEmail.value = response.data.detecting_email
-      detectingDetail.value = response.data.detecting_detail
-      pendingEmails.value = response.data.pending_emails
-    } else {
-      console.error('获取检测概览失败:', response.message)
-      // 出错时重置状态
-      detectingEmail.value = null
-      detectingDetail.value = null
-      pendingEmails.value = []
+  const currentStage = detectingDetail.value.detection_stage
+  const stageMap = {
+    content_detection: 2,
+    url_detection: 2,
+    metadata_detection: 2,
+    ai_analysis: 3,
+    information_extraction: 4,
+  }
+
+  const currentStageNumber = stageMap[currentStage] || 1
+  
+  // 特殊处理第二阶段：如果任何检测模块正在进行，则显示为active
+  if (stageNumber === 2 && detectingDetail.value) {
+    const contentStatus = detectingDetail.value.content_detection_status
+    const urlStatus = detectingDetail.value.url_detection_status
+    const metadataStatus = detectingDetail.value.metadata_detection_status
+    
+    // 如果有任何模块正在检测(状态为1)，则第二阶段为active
+    if (contentStatus === 1 || urlStatus === 1 || metadataStatus === 1) {
+      return 'stage-active'
     }
-  } catch (error) {
-    console.error('请求检测概览接口出错:', error)
-    // 出错时重置状态
-    detectingEmail.value = null
-    detectingDetail.value = null
-    pendingEmails.value = []
-  } finally {
-    loading.value = false
-  }
-}
-
-// 开始检测邮件的函数
-const startDetection = async (emailId) => {
-  try {
-    const response = await startEmailDetection(emailId)
-    console.log('开始检测API返回数据:', response)
-  } catch (error) {
-    console.error('调用开始检测API出错:', error)
-  }
-}
-
-// 自动检测逻辑（封装的通用方法）
-const autoDetectionLogic = async () => {
-  console.log('🔍 [DEBUG] autoDetectionLogic 开始执行')
-  // 显示加载状态
-  loading.value = true
-
-  try {
-    // 1. 先调用loadDetectionOverview加载数据
-    console.log('🔍 [DEBUG] autoDetectionLogic 调用 loadDetectionOverview')
-    await loadDetectionOverview()
-
-    // 2. 判断是否有正在检测的邮件
-    console.log(
-      '🔍 [DEBUG] autoDetectionLogic 检查状态 - detectingEmail:',
-      !!detectingEmail.value,
-      'pendingEmails.length:',
-      pendingEmails.value.length,
-    )
-    if (!detectingEmail.value && pendingEmails.value.length > 0) {
-      // 没有正在检测的邮件，选择第一封待检测邮件
-      const firstPendingEmail = pendingEmails.value[0]
-      console.log(
-        '🔍 [DEBUG] autoDetectionLogic 自动开始检测第一封待检测邮件:',
-        firstPendingEmail.id,
-      )
-
-      // 3. 调用startDetection函数去检测
-      await startDetection(firstPendingEmail.id)
-
-      // 4. 等到返回结果时再次调用loadDetectionOverview函数渲染页面
-      await loadDetectionOverview()
-    } else {
-      console.log('🔍 [DEBUG] autoDetectionLogic 无需自动检测 - 已有检测中邮件或无待检测邮件')
+    
+    // 如果所有模块都完成了(状态为2或3)，则为completed
+    if ((contentStatus === 2 || contentStatus === 3) && 
+        (urlStatus === 2 || urlStatus === 3) && 
+        (metadataStatus === 2 || metadataStatus === 3)) {
+      return 'stage-completed'
     }
-  } catch (error) {
-    console.error('自动检测逻辑执行出错:', error)
-  } finally {
-    loading.value = false
-    console.log('🔍 [DEBUG] autoDetectionLogic 执行完成')
+  }
+
+  if (stageNumber <= currentStageNumber) {
+    if (stageNumber === currentStageNumber) {
+      return 'stage-active' // 当前阶段高亮
+    } else {
+      return 'stage-completed' // 已完成阶段水平
+    }
+  } else {
+    return 'stage-tilted' // 未开始阶段倾斜
   }
 }
 
-// 处理新邮件推送
-const handleNewEmails = async (data) => {
-  const timestamp = new Date().toLocaleTimeString()
-  console.log(`[${timestamp}] 🔍 [DEBUG] 收到新邮件推送，触发 autoDetectionLogic:`, data)
-  console.log(`[${timestamp}] 🔍 [DEBUG] WebSocket连接状态:`, wsManager.isConnected)
-  console.log(
-    `[${timestamp}] 🔍 [DEBUG] 当前注册的事件处理器数量:`,
-    wsManager.eventHandlers['new_email_notification']?.length || 0,
-  )
-
-  // 更新邮件数量
-  if (data.email_count) {
-    console.log(`[${timestamp}] 🔍 [DEBUG] 开始重新加载检测概览数据`)
-    await autoDetectionLogic()
-  }
-  console.log(`[${timestamp}] 🔍 [DEBUG] handleNewEmails执行完毕`)
-}
-
-// 处理检测完成推送
-const handleDetectionCompleted = (data) => {
-  console.log('🎉 检测完成推送:', data)
-  console.log('邮件ID:', data.email_id)
-  console.log('检测详情:', data.detection_detail)
-  console.log('消息:', data.message)
-}
-
-// 获取检测模块状态类
-const getModuleStatusClass = (moduleType) => {
-  if (!detectingDetail.value) return ''
-
-  const statusMap = {
-    content: detectingDetail.value.content_detection_status,
-    url: detectingDetail.value.url_detection_status,
-    metadata: detectingDetail.value.metadata_detection_status,
-  }
-
-  const status = statusMap[moduleType]
-  if (status === 1) return 'detecting' // 检测中
-  if (status === 2) return 'completed' // 检测完成
-  if (status === 3) return 'no-need' // 无需检测
-  return 'waiting' // 等待开始
-}
-
-// 获取模块状态文本
-const getModuleStatusText = (moduleType) => {
-  if (!detectingDetail.value) return '等待开始'
-
-  const statusMap = {
-    content: detectingDetail.value.content_detection_status,
-    url: detectingDetail.value.url_detection_status,
-    metadata: detectingDetail.value.metadata_detection_status,
-  }
-
-  const status = statusMap[moduleType]
+// 获取检测模块样式类
+const getDetectionClass = (type) => {
+  if (!detectingDetail.value) return 'pending'
+  
+  const statusField = `${type}_detection_status`
+  const status = detectingDetail.value[statusField]
+  
   switch (status) {
+    case 0:
+      return 'pending' // 未检测
     case 1:
-      return '检测中...'
+      return 'detecting' // 正在检测
     case 2:
-      return '检测完成'
+      // 检测完成，根据结果添加额外样式类
+      const isPhishingField = `${type}_is_phishing`
+      const isPhishing = detectingDetail.value[isPhishingField]
+      return isPhishing ? 'completed phishing' : 'completed safe'
+    case 3:
+      return 'no-need' // 不需要检测
+    default:
+      return 'pending'
+  }
+}
+
+// 获取检测进度样式
+const getProgressStyle = (type) => {
+  if (!detectingDetail.value) return { '--progress': '0%' }
+  
+  const statusField = `${type}_detection_status`
+  const status = detectingDetail.value[statusField]
+  
+  switch (status) {
+    case 0:
+      return { '--progress': '0%' } // 未检测
+    case 1:
+      return { '--progress': '50%' } // 正在检测
+    case 2:
+      return { '--progress': '100%' } // 检测完成
+    case 3:
+      return { '--progress': '0%' } // 不需要检测
+    default:
+      return { '--progress': '0%' }
+  }
+}
+
+// 获取检测详情信息
+const getDetectionDetails = (type) => {
+  if (!detectingDetail.value) return ''
+  
+  const statusField = `${type}_detection_status`
+  const status = detectingDetail.value[statusField]
+  
+  switch (status) {
+    case 0:
+      return '' // 未检测，不显示详情
+    case 1:
+      // 正在检测，显示权重
+      const weightField = `${type}_weight`
+      const weight = detectingDetail.value[weightField]
+      return weight ? `权重: ${Number(weight).toFixed(2)}` : ''
+    case 2:
+      // 检测完成，显示结果
+      const isPhishingField = `${type}_is_phishing`
+      const probabilityField = `${type}_phishing_probability`
+      const isPhishing = detectingDetail.value[isPhishingField]
+      const probability = detectingDetail.value[probabilityField]
+      
+      if (isPhishing) {
+        return probability ? `概率: ${(Number(probability) * 100).toFixed(0)}%` : ''
+      } else {
+        return '正常'
+      }
+    case 3:
+      return '无需检测' // 不需要检测
+    default:
+      return ''
+  }
+}
+
+// 获取检测状态文本
+const getDetectionStatus = (type) => {
+  if (!detectingDetail.value) return '等待开始'
+  
+  const statusField = `${type}_detection_status`
+  const status = detectingDetail.value[statusField]
+  
+  switch (status) {
+    case 0:
+      return '等待开始'
+    case 1:
+      return '正在检测...'
+    case 2:
+      const isPhishingField = `${type}_is_phishing`
+      const isPhishing = detectingDetail.value[isPhishingField]
+      return isPhishing ? '钓鱼' : '正常'
     case 3:
       return '无需检测'
     default:
@@ -412,109 +479,76 @@ const getModuleStatusText = (moduleType) => {
   }
 }
 
-// 获取模块权重
-const getModuleWeight = (moduleType) => {
-  if (!detectingDetail.value) return null
-
-  const weightMap = {
-    content: detectingDetail.value.content_detection_weight,
-    url: detectingDetail.value.url_detection_weight,
-    metadata: detectingDetail.value.metadata_detection_weight,
+// 获取检测状态样式类
+const getDetectionStatusClass = (type) => {
+  if (!detectingDetail.value) return ''
+  
+  const statusField = `${type}_detection_status`
+  const status = detectingDetail.value[statusField]
+  
+  if (status === 2) {
+    const isPhishingField = `${type}_is_phishing`
+    const isPhishing = detectingDetail.value[isPhishingField]
+    return isPhishing ? 'phishing-result' : 'safe-result'
   }
-
-  const weight = weightMap[moduleType]
-  return weight ? Math.round(weight * 100) : null
+  
+  return ''
 }
 
-// 获取模块钓鱼概率
-const getModuleProbability = (moduleType) => {
-  if (!detectingDetail.value) return null
+// 获取检测概览数据
+const fetchDetectionOverview = async () => {
+  try {
+    const overviewResponse = await getDetectionOverview()
+    console.log('Detection Overview API 返回数据:', overviewResponse)
 
-  const probabilityMap = {
-    content: detectingDetail.value.content_detection_probability,
-    url: detectingDetail.value.url_detection_probability,
-    metadata: detectingDetail.value.metadata_detection_probability,
+    if (overviewResponse.success && overviewResponse.data) {
+      detectingDetail.value = overviewResponse.data.detecting_detail
+      detectingEmail.value = overviewResponse.data.detecting_email
+      pendingEmails.value = overviewResponse.data.pending_emails || []
+    }
+  } catch (overviewError) {
+    console.error('获取检测概览失败:', overviewError)
   }
-
-  const probability = probabilityMap[moduleType]
-  return probability !== null && probability !== undefined ? Math.round(probability * 100) : null
 }
 
-// 获取模块检测原因
-const getModuleReason = (moduleType) => {
-  if (!detectingDetail.value) return null
+// 获取邮件方法
+const handleFetchEmails = async () => {
+  if (isFetching.value) return
 
-  const reasonMap = {
-    content: detectingDetail.value.content_detection_reason,
-    url: detectingDetail.value.url_detection_reason,
-    metadata: detectingDetail.value.metadata_detection_reason,
-  }
+  isFetching.value = true
+  newEmailsMessage.value = ''
 
-  return reasonMap[moduleType] || null
-}
+  try {
+    const response = await fetchEmails()
 
-// 获取圆形进度条样式
-const getCircleProgressStyle = (moduleType) => {
-  if (!detectingDetail.value) return {}
+    if (response.success) {
+      const newEmailCount = response.data?.new_emails_count || 0
 
-  const statusMap = {
-    content: detectingDetail.value.content_detection_status,
-    url: detectingDetail.value.url_detection_status,
-    metadata: detectingDetail.value.metadata_detection_status,
-  }
-
-  const status = statusMap[moduleType]
-  const probability = getModuleProbability(moduleType)
-
-  let progressColor = '#74b9ff'
-  let progressPercent = 0
-
-  switch (status) {
-    case 1: // 检测中
-      progressColor = '#fdcb6e'
-      progressPercent = 50
-      break
-    case 2: // 检测完成
-      if (probability !== null) {
-        progressColor = probability > 50 ? '#e17055' : '#00b894'
-        progressPercent = 100
+      if (newEmailCount > 0) {
+        newEmailsMessage.value = `成功获取到 ${newEmailCount} 封新邮件`
+        showSuccess(`成功获取到 ${newEmailCount} 封新邮件`)
       } else {
-        progressColor = '#74b9ff'
-        progressPercent = 100
+        newEmailsMessage.value = '暂无新邮件'
+        showInfo('暂无新邮件')
       }
-      break
-    case 3: // 无需检测
-      progressColor = '#636e72'
-      progressPercent = 100
-      break
-    default: // 等待开始
-      progressColor = '#ddd'
-      progressPercent = 0
-  }
 
-  return {
-    '--progress-color': progressColor,
-    '--progress-percent': progressPercent + '%',
+      // 获取邮件成功后，调用检测概览函数
+      await fetchDetectionOverview()
+
+      // 3秒后清除提示信息
+      setTimeout(() => {
+        newEmailsMessage.value = ''
+      }, 3000)
+    } else {
+      showError(response.message || '获取邮件失败')
+    }
+  } catch (error) {
+    console.error('获取邮件失败:', error)
+    showError('获取邮件失败，请检查网络连接')
+  } finally {
+    isFetching.value = false
   }
 }
-
-// 页面挂载时加载数据
-onMounted(() => {
-  loadDetectionOverview()
-  // startDetection(1)
-
-  autoDetectionLogic()
-
-  // 注册事件监听器（WebSocket连接由全局App.vue管理）
-  wsManager.on('new_email_notification', handleNewEmails)
-  wsManager.on('detection_completed', handleDetectionCompleted)
-})
-
-// 页面卸载时清理事件监听
-onUnmounted(() => {
-  wsManager.off('new_email_notification', handleNewEmails)
-  wsManager.off('detection_completed', handleDetectionCompleted)
-})
 </script>
 
 <style scoped>
@@ -531,6 +565,22 @@ onUnmounted(() => {
   margin-bottom: 3rem;
 }
 
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.title-section {
+  flex: 1;
+}
+
+.action-section {
+  flex-shrink: 0;
+}
+
 .page-title {
   font-size: 2.5rem;
   font-weight: 700;
@@ -542,6 +592,79 @@ onUnmounted(() => {
   font-size: 1.1rem;
   opacity: 0.9;
   margin: 0;
+}
+
+.fetch-email-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  border: none;
+  border-radius: 12px;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+}
+
+.fetch-email-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
+}
+
+.fetch-email-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-icon {
+  width: 18px;
+  height: 18px;
+}
+
+.loading-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.new-emails-notification {
+  margin-top: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 500;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .detection-container {
@@ -1649,6 +1772,10 @@ onUnmounted(() => {
   text-align: center;
   position: relative;
   flex: 1;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  cursor: pointer;
 }
 
 .circle-container {
@@ -1656,6 +1783,9 @@ onUnmounted(() => {
   width: 120px;
   height: 120px;
   margin-bottom: 1rem;
+  border: none;
+  outline: none;
+  box-shadow: none;
 }
 
 .circle-progress {
@@ -1667,7 +1797,6 @@ onUnmounted(() => {
     var(--progress-color, #74b9ff) var(--progress-percent, 0%),
     rgba(255, 255, 255, 0.1) var(--progress-percent, 0%)
   );
-  padding: 4px;
   transition: all 0.4s ease;
 }
 
@@ -1717,8 +1846,8 @@ onUnmounted(() => {
     filter: brightness(1);
   }
   50% {
-    transform: scale(1.05);
-    filter: brightness(1.2);
+    transform: scale(1.03);
+    filter: brightness(1.1);
   }
 }
 
@@ -1747,12 +1876,8 @@ onUnmounted(() => {
   transition: all 0.3s ease;
 }
 
-.detection-circle.detecting .module-icon {
-  animation: icon-pulse 2s ease-in-out infinite;
-}
-
 .detection-circle.detecting .module-icon svg {
-  animation: icon-rotate 2s linear infinite;
+  animation: icon-scale 1.5s ease-in-out infinite;
 }
 
 .detection-circle.completed .module-icon {
@@ -1775,12 +1900,12 @@ onUnmounted(() => {
   }
 }
 
-@keyframes icon-rotate {
-  0% {
-    transform: rotate(0deg);
+@keyframes icon-scale {
+  0%, 100% {
+    transform: scale(1);
   }
-  100% {
-    transform: rotate(360deg);
+  50% {
+    transform: scale(1.1);
   }
 }
 
@@ -1797,6 +1922,21 @@ onUnmounted(() => {
   font-weight: 600;
   margin-bottom: 0.5rem;
   color: rgba(255, 255, 255, 0.95);
+}
+
+/* 钓鱼结果时的模块信息布局优化 */
+.detection-circle.completed.phishing .module-info {
+  justify-content: center;
+}
+
+.detection-circle.completed.phishing .module-details {
+  order: 1;
+  margin-bottom: 0.8rem;
+}
+
+.detection-circle.completed.phishing .module-status {
+  order: 2;
+  margin-top: 0.3rem;
 }
 
 .module-details {
@@ -1816,6 +1956,14 @@ onUnmounted(() => {
 .probability-info {
   color: rgba(255, 217, 61, 0.9);
   font-weight: 600;
+}
+
+/* 钓鱼结果时的概率信息突出显示 */
+.detection-circle.completed.phishing .probability-info {
+  color: rgba(239, 68, 68, 1);
+  font-size: 1rem;
+  font-weight: 800;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
 .reason-info {
@@ -2103,6 +2251,26 @@ onUnmounted(() => {
   }
 }
 
+@keyframes detecting-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes dot-glow {
+  0%, 100% {
+    box-shadow: 0 0 6px rgba(116, 185, 255, 0.8);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 12px rgba(116, 185, 255, 1), 0 0 20px rgba(0, 210, 255, 0.6);
+    transform: scale(1.1);
+  }
+}
+
 @keyframes arrow-pulse {
   0%,
   100% {
@@ -2135,6 +2303,219 @@ onUnmounted(() => {
   }
 }
 
+/* 阶段动态样式 */
+.stage-tilted {
+  transform: perspective(1000px) rotateX(5deg) rotateY(-3deg);
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.stage-completed {
+  transform: perspective(1000px) rotateX(0deg) rotateY(0deg);
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  opacity: 0.9;
+}
+
+.stage-active {
+  transform: perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1.02);
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 10px 40px rgba(116, 185, 255, 0.3);
+  border: 2px solid rgba(116, 185, 255, 0.5);
+}
+
+/* 邮件卡片样式 */
+.detecting-email {
+  margin-bottom: 20px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.email-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 12px;
+  backdrop-filter: blur(10px);
+  transition: all 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+  min-height: 80px;
+  display: flex;
+  flex-direction: column;
+}
+
+.email-card.current-detecting {
+  border: 2px solid rgba(116, 185, 255, 0.8);
+  background: linear-gradient(135deg, 
+    rgba(116, 185, 255, 0.15), 
+    rgba(0, 210, 255, 0.1),
+    rgba(255, 255, 255, 0.08)
+  );
+  box-shadow: 
+    0 8px 32px rgba(116, 185, 255, 0.3),
+    0 4px 16px rgba(0, 210, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  animation: pulse-glow 2s infinite;
+  position: relative;
+  overflow: hidden;
+}
+
+.email-card.current-detecting::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  animation: detecting-shimmer 3s infinite;
+  pointer-events: none;
+}
+
+.email-card.pending {
+  opacity: 0.8;
+}
+
+.email-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+}
+
+.email-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+  min-height: 32px;
+}
+
+.email-icon {
+  width: 24px;
+  height: 24px;
+  color: rgba(116, 185, 255, 0.8);
+}
+
+.detecting-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(116, 185, 255, 0.3), rgba(0, 210, 255, 0.2));
+  color: #ffffff;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  box-shadow: 
+    0 2px 8px rgba(116, 185, 255, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(116, 185, 255, 0.4);
+}
+
+.pulse-dot {
+  width: 10px;
+  height: 10px;
+  background: radial-gradient(circle, #ffffff, #74b9ff);
+  border-radius: 50%;
+  animation: pulse 1.5s infinite, dot-glow 2s infinite;
+  box-shadow: 0 0 6px rgba(116, 185, 255, 0.8);
+}
+
+.email-info {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.email-subject {
+  color: #ffffff;
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  word-break: break-all;
+}
+
+.email-sender {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+  word-break: break-all;
+}
+
+.pending-emails {
+  margin-top: 20px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.pending-title {
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pending-list {
+  max-height: 300px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(116, 185, 255, 0.3) transparent;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.pending-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.pending-list::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.pending-list::-webkit-scrollbar-thumb {
+  background: rgba(116, 185, 255, 0.3);
+  border-radius: 3px;
+}
+
+.pending-list::-webkit-scrollbar-thumb:hover {
+  background: rgba(116, 185, 255, 0.5);
+}
+
+.pending-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 12px;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 50%;
+}
+
 /* 响应式设计 */
 @media (max-width: 1400px) {
   .detection-container {
@@ -2163,6 +2544,254 @@ onUnmounted(() => {
   .stage {
     width: 100%;
     max-width: 500px;
+  }
+}
+
+@media (max-width: 1024px) {
+  .stage-content {
+    padding: 20px;
+  }
+
+  .email-card {
+    padding: 14px;
+  }
+
+  .email-subject {
+    font-size: 15px;
+  }
+
+  .email-sender {
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 768px) {
+  .stage-content {
+    padding: 12px;
+  }
+
+  .email-card {
+    padding: 12px;
+    min-height: 70px;
+  }
+
+  .email-subject {
+    font-size: 14px;
+    line-height: 1.3;
+    margin-bottom: 6px;
+  }
+
+  .email-sender {
+    font-size: 12px;
+  }
+
+  .pending-title {
+    font-size: 16px;
+  }
+
+  .detecting-badge {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+
+  .email-header {
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stage-content {
+    padding: 10px;
+  }
+
+  .email-card {
+    padding: 10px;
+    min-height: 60px;
+  }
+
+  .email-subject {
+    font-size: 13px;
+    line-height: 1.2;
+  }
+
+  .email-sender {
+    font-size: 11px;
+  }
+
+  .pending-title {
+    font-size: 14px;
+  }
+
+  .detecting-badge {
+    padding: 2px 6px;
+    font-size: 10px;
+  }
+
+  .email-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .pending-list {
+    max-height: 200px;
+  }
+}
+
+/* 第二阶段检测模块样式 */
+
+.detection-circle.pending {
+  opacity: 0.6;
+}
+
+.detection-circle.detecting {
+  opacity: 1;
+  animation: detection-pulse 2s ease-in-out infinite;
+}
+
+.detection-circle.detecting .circle-progress {
+  background: conic-gradient(
+    from 0deg,
+    rgba(116, 185, 255, 0.8) 0deg,
+    rgba(116, 185, 255, 0.8) calc(var(--progress) * 3.6deg),
+    rgba(255, 255, 255, 0.1) calc(var(--progress) * 3.6deg),
+    rgba(255, 255, 255, 0.1) 360deg
+  );
+  animation: circle-pulse 2s ease-in-out infinite;
+}
+
+.detection-circle.completed {
+  opacity: 1;
+}
+
+.detection-circle.completed .circle-progress {
+  background: conic-gradient(
+    from 0deg,
+    rgba(0, 184, 148, 0.8) 0deg,
+    rgba(0, 184, 148, 0.8) 360deg
+  );
+}
+
+.detection-circle.no-need {
+  opacity: 0.4;
+  filter: grayscale(0.5);
+}
+
+@keyframes detection-pulse {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 20px rgba(116, 185, 255, 0.3);
+  }
+  50% {
+    transform: scale(1.02);
+    box-shadow: 0 0 30px rgba(116, 185, 255, 0.5);
+  }
+}
+
+@keyframes progress-rotate {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* 检测完成状态的特殊样式 */
+.detection-circle.completed.phishing .circle-progress {
+  background: conic-gradient(
+    from 0deg,
+    rgba(239, 68, 68, 0.7) 0deg,
+    rgba(239, 68, 68, 0.7) 360deg
+  );
+  box-shadow: 0 0 25px rgba(239, 68, 68, 0.4);
+  border: 2px solid rgba(239, 68, 68, 0.6);
+}
+
+.detection-circle.completed.phishing .circle-inner {
+  background: linear-gradient(
+    135deg,
+    rgba(239, 68, 68, 0.15) 0%,
+    rgba(220, 38, 38, 0.1) 50%,
+    rgba(239, 68, 68, 0.15) 100%
+  );
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+.detection-circle.completed.phishing .module-icon {
+  color: rgba(239, 68, 68, 0.9);
+}
+
+.detection-circle.completed.phishing .module-title {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.detection-circle.completed.phishing .module-status {
+  color: rgba(239, 68, 68, 1);
+}
+
+.detection-circle.completed.safe .circle-progress {
+  background: conic-gradient(
+    from 0deg,
+    rgba(5, 150, 105, 0.8) 0deg,
+    rgba(5, 150, 105, 0.8) 360deg
+  );
+  box-shadow: 0 0 25px rgba(5, 150, 105, 0.4);
+}
+
+.detection-circle.completed.safe .module-status {
+  color: rgba(5, 150, 105, 1);
+}
+
+/* 钓鱼结果特殊样式 */
+.module-status.phishing-result {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.9) 0%, rgba(220, 38, 38, 0.8) 100%);
+  color: white;
+  font-size: 1.4rem;
+  font-weight: 900;
+  padding: 0.6rem 1.2rem;
+  border-radius: 10px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
+  animation: phishing-alert 2.5s ease-in-out infinite;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin: 0.8rem 0;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  position: relative;
+  z-index: 5;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.module-status.safe-result {
+  background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+  color: white;
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.3rem 0.8rem;
+  border-radius: 6px;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(39, 174, 96, 0.3);
+}
+
+@keyframes phishing-alert {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
+  }
+  50% {
+    transform: scale(1.03);
+    box-shadow: 0 6px 25px rgba(239, 68, 68, 0.5);
+  }
+}
+
+@media (max-width: 1200px) {
+  .module-status.phishing-result {
+    font-size: 1rem;
+    padding: 0.4rem 0.8rem;
   }
 }
 </style>

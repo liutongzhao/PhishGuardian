@@ -1,5 +1,5 @@
 /**
- * WebSocket 连接管理
+ * WebSocket连接管理工具
  */
 import { io } from 'socket.io-client'
 import { useAuthStore } from '@/stores/auth'
@@ -12,223 +12,196 @@ class WebSocketManager {
     this.reconnectAttempts = 0
     this.maxReconnectAttempts = 5
     this.reconnectDelay = 1000
-    this.eventHandlers = new Map()
-    this.monitoringSetup = false // 标记是否已设置连接监控
+    this.messageHandlers = new Map()
   }
 
   /**
    * 连接WebSocket
    */
   connect() {
-    const authStore = useAuthStore()
-    const token = authStore.token
-
-    if (!token) {
-      console.warn('WebSocket连接失败: 缺少认证token')
-      return
-    }
-
-    // 如果已经连接且状态正常，不重复连接
-    if (this.socket && this.socket.connected) {
+    if (this.socket && this.isConnected) {
       console.log('WebSocket已连接，跳过重复连接')
       return
     }
 
     try {
-      // 如果已有连接，先断开
-      if (this.socket) {
-        this.socket.disconnect()
-        this.socket = null
+      const authStore = useAuthStore()
+      const token = authStore.token
+
+      console.log('检查认证token:', token ? '存在' : '不存在')
+      if (!token) {
+        console.log('未找到认证token，跳过WebSocket连接')
+        return
       }
 
-      console.log('正在建立WebSocket连接...')
+      console.log('正在连接WebSocket到 http://localhost:5000...')
+
       this.socket = io('http://localhost:5000', {
         auth: {
           token: token,
         },
         transports: ['websocket', 'polling'],
         timeout: 10000,
-        forceNew: false, // 改为false，允许连接复用
+        forceNew: true,
       })
 
-      this.setupEventListeners()
-      
-      // 只在首次连接时设置监控，避免重复创建定时器
-      if (!this.monitoringSetup) {
-        this.setupConnectionMonitoring()
-        this.monitoringSetup = true
-      }
+      console.log('WebSocket实例已创建，设置事件处理器...')
+      this.setupEventHandlers()
     } catch (error) {
-      console.error('WebSocket连接错误:', error)
+      console.error('WebSocket连接失败:', error)
     }
   }
 
   /**
-   * 设置事件监听器
+   * 设置事件处理器
    */
-  setupEventListeners() {
-    if (!this.socket) return
+  setupEventHandlers() {
+    if (!this.socket) {
+      console.error('WebSocket实例不存在，无法设置事件处理器')
+      return
+    }
 
-    // 只移除特定的内置事件监听器，避免影响其他监听器
-    const eventsToRemove = ['connect', 'connected', 'new_email_notification', 'detection_completed', 'disconnect', 'connect_error']
-    eventsToRemove.forEach(event => {
-      this.socket.removeAllListeners(event)
-    })
+    console.log('开始设置WebSocket事件处理器...')
 
     // 连接成功
     this.socket.on('connect', () => {
-      console.log('WebSocket连接成功')
+      console.log('✅ WebSocket连接成功！')
       this.isConnected = true
       this.reconnectAttempts = 0
     })
 
     // 连接确认
     this.socket.on('connected', (data) => {
-      console.log('连接确认', data)
-      // 连接确认处理
+      console.log('✅ WebSocket连接确认:', data)
     })
 
-    // 新邮件通知
-    this.socket.on('new_email_notification', (data) => {
-      console.log('收到新邮件通知:', data)
-      this.handleNewEmailNotification(data)
-    })
-
-    // 检测完成通知
-    this.socket.on('detection_completed', (data) => {
-      console.log('收到检测完成通知:', data)
-      this.triggerEvent('detection_completed', data)
-    })
-
-    // 连接断开
-    this.socket.on('disconnect', (reason) => {
-      console.log('WebSocket连接断开:', reason)
-      this.isConnected = false
-
-      if (reason === 'io server disconnect') {
-        this.reconnect()
-      }
+    // 接收推送消息
+    this.socket.on('push_message', (message) => {
+      console.log('📨 收到推送消息:', message)
+      this.handlePushMessage(message)
     })
 
     // 连接错误
     this.socket.on('connect_error', (error) => {
-      console.error('连接错误', error)
+      console.error('❌ WebSocket连接错误:', error)
       this.isConnected = false
-      this.reconnect()
+      this.handleReconnect()
     })
-  }
 
-  /**
-   * 设置连接状态监控
-   */
-  setupConnectionMonitoring() {
-    // 定期检查连接状态
-    setInterval(() => {
-      if (this.socket) {
-        const socketConnected = this.socket.connected
+    // 断开连接
+    this.socket.on('disconnect', (reason) => {
+      console.log('🔌 WebSocket断开连接:', reason)
+      this.isConnected = false
 
-        // 检测到连接断开但管理器状态未更新
-        if (!socketConnected && this.isConnected) {
-          this.isConnected = false
-        }
-
-        // 如果连接断开且重连次数未超限，尝试重连
-        if (!socketConnected && this.reconnectAttempts < this.maxReconnectAttempts) {
-          this.reconnectAttempts++
-          console.log(`WebSocket连接断开，尝试第 ${this.reconnectAttempts} 次重连`)
-          this.connect() // 使用完整的connect方法重新建立连接和事件监听器
-        }
+      // 如果不是主动断开，尝试重连
+      if (reason !== 'io client disconnect') {
+        this.handleReconnect()
       }
-    }, 10000) // 每10秒检查一次
+    })
+
+    console.log('WebSocket事件处理器设置完成')
   }
 
   /**
-   * 处理新邮件通知（包括检测完成通知）
+   * 处理推送消息
    */
-  handleNewEmailNotification(data) {
-    const timestamp = new Date().toLocaleTimeString()
-    console.log(`[${timestamp}] WebSocket收到通知:`, data)
-    console.log(`[${timestamp}] 当前连接状态:`, this.isConnected)
-    console.log(`[${timestamp}] Socket实例状态:`, this.socket?.connected)
-    
-    // 根据消息类型进行不同处理
-    if (data.type === 'detection_completed') {
-      // 检测完成通知
-      console.log(`[${timestamp}] 收到检测完成通知:`, data)
-      
-      // 显示检测完成通知
-      showToast({
-        type: 'success',
-        message: data.message || '邮件检测完成',
-        duration: 5000,
-      })
-      
-      // 触发检测完成事件处理器
-      console.log(`[${timestamp}] 触发检测完成事件处理器，处理器数量:`, this.eventHandlers['detection_completed']?.length || 0)
-      this.triggerEvent('detection_completed', data)
-    } else {
-      // 新邮件通知
-      console.log(`[${timestamp}] 收到新邮件通知:`, data)
-      
-      // 显示新邮件通知
-      showToast({
-        type: 'info',
-        message: data.message || `检测到 ${data.email_count} 封新邮件`,
-        duration: 5000,
-      })
+  handlePushMessage(message) {
+    const { type, data } = message
 
-      // 触发新邮件事件处理器
-      console.log(`[${timestamp}] 触发新邮件事件处理器，处理器数量:`, this.eventHandlers['new_email_notification']?.length || 0)
-      this.triggerEvent('new_email_notification', data)
+    switch (type) {
+      case 'new_emails':
+        this.handleNewEmailsNotification(data)
+        break
+      case 'detection_completed':
+        this.handleDetectionCompletedNotification(data)
+        break
+      default:
+        console.log('未知消息类型:', type, data)
+    }
+
+    // 调用注册的消息处理器
+    if (this.messageHandlers.has(type)) {
+      const handlers = this.messageHandlers.get(type)
+      handlers.forEach((handler) => {
+        try {
+          handler(data)
+        } catch (error) {
+          console.error('消息处理器执行失败:', error)
+        }
+      })
     }
   }
 
   /**
-   * 重新连接
+   * 处理新邮件通知
    */
-  reconnect() {
+  handleNewEmailsNotification(data) {
+    console.log('处理新邮件通知，原始数据:', data)
+    const { email_count, message } = data
+
+    if (email_count > 0) {
+      showToast({
+        message: message || `收到 ${email_count} 封新邮件`,
+        type: 'success',
+        duration: 5000,
+      })
+    }
+
+    console.log('新邮件通知处理完成:', { email_count, message })
+  }
+
+  /**
+   * 处理检测完成通知
+   */
+  handleDetectionCompletedNotification(data) {
+    console.log('📋 收到检测完成通知:', data)
+    const { email_id, detection_type, is_phishing, probability, confidence, message } = data
+
+    console.log(`邮件${email_id}的${detection_type}检测已完成:`, {
+      is_phishing,
+      probability,
+      confidence,
+      message,
+    })
+  }
+
+  /**
+   * 处理重连
+   */
+  handleReconnect() {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      console.error('WebSocket重连次数已达上限')
+      console.log('WebSocket重连次数已达上限，停止重连')
       return
     }
 
     this.reconnectAttempts++
     const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1)
 
-    console.log(`WebSocket将在 ${delay}ms 后尝试第 ${this.reconnectAttempts} 次重连`)
+    console.log(`WebSocket将在 ${delay}ms 后进行第 ${this.reconnectAttempts} 次重连`)
 
     setTimeout(() => {
-      this.connect()
+      if (!this.isConnected) {
+        this.connect()
+      }
     }, delay)
   }
 
   /**
-   * 断开连接
+   * 注册消息处理器
    */
-  disconnect() {
-    if (this.socket) {
-      this.socket.disconnect()
-      this.socket = null
-      this.isConnected = false
+  onMessage(type, handler) {
+    if (!this.messageHandlers.has(type)) {
+      this.messageHandlers.set(type, [])
     }
+    this.messageHandlers.get(type).push(handler)
   }
 
   /**
-   * 注册事件处理器
+   * 移除消息处理器
    */
-  on(event, handler) {
-    if (!this.eventHandlers.has(event)) {
-      this.eventHandlers.set(event, [])
-    }
-    this.eventHandlers.get(event).push(handler)
-  }
-
-  /**
-   * 移除事件处理器
-   */
-  off(event, handler) {
-    if (this.eventHandlers.has(event)) {
-      const handlers = this.eventHandlers.get(event)
+  offMessage(type, handler) {
+    if (this.messageHandlers.has(type)) {
+      const handlers = this.messageHandlers.get(type)
       const index = handlers.indexOf(handler)
       if (index > -1) {
         handlers.splice(index, 1)
@@ -237,24 +210,15 @@ class WebSocketManager {
   }
 
   /**
-   * 触发事件
+   * 断开连接
    */
-  triggerEvent(event, data) {
-    const timestamp = new Date().toLocaleTimeString()
-    const handlers = this.eventHandlers.has(event) ? this.eventHandlers.get(event) : []
-    
-    console.log(`[${timestamp}] 触发事件 ${event}，处理器数量: ${handlers.length}`)
-    
-    if (this.eventHandlers.has(event)) {
-      this.eventHandlers.get(event).forEach((handler, index) => {
-        try {
-          console.log(`[${timestamp}] 执行事件处理器 ${event}[${index}]`)
-          handler(data)
-          console.log(`[${timestamp}] 事件处理器 ${event}[${index}] 执行完成`)
-        } catch (error) {
-          console.error(`[${timestamp}] 事件处理器 ${event}[${index}] 执行错误:`, error)
-        }
-      })
+  disconnect() {
+    if (this.socket) {
+      console.log('主动断开WebSocket连接')
+      this.socket.disconnect()
+      this.socket = null
+      this.isConnected = false
+      this.reconnectAttempts = 0
     }
   }
 
@@ -269,14 +233,7 @@ class WebSocketManager {
   }
 }
 
-// 创建全局实例
-const wsManager = new WebSocketManager()
+// 创建全局WebSocket管理器实例
+const websocketManager = new WebSocketManager()
 
-export default wsManager
-
-// 导出便捷方法
-export const connectWebSocket = () => wsManager.connect()
-export const disconnectWebSocket = () => wsManager.disconnect()
-export const onWebSocketEvent = (event, handler) => wsManager.on(event, handler)
-export const offWebSocketEvent = (event, handler) => wsManager.off(event, handler)
-export const getWebSocketStatus = () => wsManager.getConnectionStatus()
+export default websocketManager

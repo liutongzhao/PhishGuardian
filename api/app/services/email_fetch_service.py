@@ -366,16 +366,9 @@ class EmailFetchService:
                 # 提交事务
                 db.session.commit()
                 
-                # 如果有新邮件，发送WebSocket通知
+                # 新邮件处理完成
                 if new_emails_count > 0:
-                    try:
-                        from app.services.websocket_service import WebSocketService
-                        WebSocketService.send_new_email_notification(
-                            user_id=binding.user_id,
-                            email_count=new_emails_count
-                        )
-                    except Exception as ws_error:
-                        print(f"发送WebSocket通知失败: {str(ws_error)}")
+                    print(f"成功获取 {new_emails_count} 封新邮件")
                 
             except Exception as e:
                 db.session.rollback()

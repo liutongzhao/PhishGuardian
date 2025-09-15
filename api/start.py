@@ -48,22 +48,17 @@ def run(env, host, port, debug):
     # 创建应用
     app = create_app(env)
     
-    # 获取socketio实例
-    from app import socketio
-    
     # 启动应用
     click.echo(f'启动PhishGuardian API服务...')
     click.echo(f'环境: {env}')
     click.echo(f'地址: http://{host}:{port}')
     click.echo(f'调试模式: {debug or env == "development"}')
     
-    # 使用SocketIO运行以支持WebSocket
-    socketio.run(
-        app,
+    # 使用Flask运行
+    app.run(
         host=host,
         port=port,
-        debug=debug or env == 'development',
-        allow_unsafe_werkzeug=True
+        debug=debug or env == 'development'
     )
 
 

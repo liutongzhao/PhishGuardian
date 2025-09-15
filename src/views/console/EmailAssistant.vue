@@ -35,7 +35,9 @@
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+            <path
+              d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"
+            />
           </svg>
           {{ isSyncing ? '同步中...' : '同步知识库' }}
         </button>
@@ -298,7 +300,7 @@
 import { ref, onMounted, nextTick, watch } from 'vue'
 import { marked } from 'marked'
 import api from '@/utils/api'
-import { showToast,  showError } from '@/utils/toast'
+import { showToast, showError } from '@/utils/toast'
 import { useAuthStore } from '@/stores/auth'
 
 // 配置marked选项
@@ -580,7 +582,8 @@ const getAssistantResponseStream = async (input, conversationId) => {
 
     // 更新错误消息
     if (streamingMessageIndex.value >= 0) {
-      messages.value[streamingMessageIndex.value].content = '抱歉，我暂时无法回复您的问题，请稍后再试。'
+      messages.value[streamingMessageIndex.value].content =
+        '抱歉，我暂时无法回复您的问题，请稍后再试。'
       messages.value[streamingMessageIndex.value].isStreaming = false
     }
 
@@ -603,8 +606,6 @@ const getAssistantResponseStream = async (input, conversationId) => {
     scrollToBottom()
   }
 }
-
-
 
 // 更新聊天历史（仅更新本地显示）
 const updateChatHistory = () => {
@@ -658,8 +659,6 @@ const loadChat = async (chatId) => {
     })
   }
 }
-
-
 
 // 新建对话
 const newConversation = () => {
@@ -723,7 +722,7 @@ const syncKnowledgeBase = async () => {
   isSyncing.value = true
   try {
     const response = await api.get('/rag/knowledge/text')
-    
+
     if (response.success) {
       showToast({
         message: '知识库同步成功',
@@ -806,15 +805,11 @@ const loadChatHistory = async () => {
   }
 }
 
-
-
 // 组件挂载后初始化
 onMounted(() => {
   loadChatHistory()
   adjustTextareaHeight()
   messageInput.value.focus()
-
-
 })
 
 // 组件卸载时清理
@@ -824,8 +819,6 @@ const cleanup = () => {
     currentEventSource.value.close()
     currentEventSource.value = null
   }
-
-
 }
 
 // 在组件卸载时清理资源
