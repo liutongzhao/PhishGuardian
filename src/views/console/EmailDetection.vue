@@ -116,9 +116,21 @@
         <div class="stage-content">
           <div class="parallel-detections">
             <!-- 邮件正文检测 -->
-            <div class="detection-circle" :class="getDetectionClass('content')" 
-                 v-if="detectingDetail && (detectingDetail.content_detection_status === 1 || (detectingDetail.content_detection_status === 2 && detectingDetail.content_reason))" 
-                 :title="detectingDetail.content_detection_status === 1 ? '正在检测邮件内容...' : detectingDetail.content_reason">
+            <div
+              class="detection-circle"
+              :class="getDetectionClass('content')"
+              v-if="
+                detectingDetail &&
+                (detectingDetail.content_detection_status === 1 ||
+                  (detectingDetail.content_detection_status === 2 &&
+                    detectingDetail.content_reason))
+              "
+              :title="
+                detectingDetail.content_detection_status === 1
+                  ? '正在检测邮件内容...'
+                  : detectingDetail.content_reason
+              "
+            >
               <div class="circle-container">
                 <div class="circle-progress" :style="getProgressStyle('content')">
                   <div class="circle-inner">
@@ -134,7 +146,9 @@
                     <div class="module-info">
                       <h4 class="module-title">正文检测</h4>
                       <div class="module-details">{{ getDetectionDetails('content') }}</div>
-                      <p class="module-status" :class="getDetectionStatusClass('content')">{{ getDetectionStatus('content') }}</p>
+                      <p class="module-status" :class="getDetectionStatusClass('content')">
+                        {{ getDetectionStatus('content') }}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -157,7 +171,9 @@
                     <div class="module-info">
                       <h4 class="module-title">正文检测</h4>
                       <div class="module-details">{{ getDetectionDetails('content') }}</div>
-                      <p class="module-status" :class="getDetectionStatusClass('content')">{{ getDetectionStatus('content') }}</p>
+                      <p class="module-status" :class="getDetectionStatusClass('content')">
+                        {{ getDetectionStatus('content') }}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -165,9 +181,20 @@
             </div>
 
             <!-- URL检测 -->
-            <div class="detection-circle" :class="getDetectionClass('url')" 
-                 v-if="detectingDetail && (detectingDetail.url_detection_status === 1 || (detectingDetail.url_detection_status === 2 && detectingDetail.url_reason))" 
-                 :title="detectingDetail.url_detection_status === 1 ? '正在检测URL链接...' : detectingDetail.url_reason">
+            <div
+              class="detection-circle"
+              :class="getDetectionClass('url')"
+              v-if="
+                detectingDetail &&
+                (detectingDetail.url_detection_status === 1 ||
+                  (detectingDetail.url_detection_status === 2 && detectingDetail.url_reason))
+              "
+              :title="
+                detectingDetail.url_detection_status === 1
+                  ? '正在检测URL链接...'
+                  : detectingDetail.url_reason
+              "
+            >
               <div class="circle-container">
                 <div class="circle-progress" :style="getProgressStyle('url')">
                   <div class="circle-inner">
@@ -180,7 +207,9 @@
                     <div class="module-info">
                       <h4 class="module-title">URL检测</h4>
                       <div class="module-details">{{ getDetectionDetails('url') }}</div>
-                      <p class="module-status" :class="getDetectionStatusClass('url')">{{ getDetectionStatus('url') }}</p>
+                      <p class="module-status" :class="getDetectionStatusClass('url')">
+                        {{ getDetectionStatus('url') }}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -200,7 +229,9 @@
                     <div class="module-info">
                       <h4 class="module-title">URL检测</h4>
                       <div class="module-details">{{ getDetectionDetails('url') }}</div>
-                      <p class="module-status" :class="getDetectionStatusClass('url')">{{ getDetectionStatus('url') }}</p>
+                      <p class="module-status" :class="getDetectionStatusClass('url')">
+                        {{ getDetectionStatus('url') }}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -208,9 +239,21 @@
             </div>
 
             <!-- 元数据检测 -->
-            <div class="detection-circle" :class="getDetectionClass('metadata')" 
-                 v-if="detectingDetail && (detectingDetail.metadata_detection_status === 1 || (detectingDetail.metadata_detection_status === 2 && detectingDetail.metadata_reason))" 
-                 :title="detectingDetail.metadata_detection_status === 1 ? '正在检测邮件元数据...' : detectingDetail.metadata_reason">
+            <div
+              class="detection-circle"
+              :class="getDetectionClass('metadata')"
+              v-if="
+                detectingDetail &&
+                (detectingDetail.metadata_detection_status === 1 ||
+                  (detectingDetail.metadata_detection_status === 2 &&
+                    detectingDetail.metadata_reason))
+              "
+              :title="
+                detectingDetail.metadata_detection_status === 1
+                  ? '正在检测邮件元数据...'
+                  : detectingDetail.metadata_reason
+              "
+            >
               <div class="circle-container">
                 <div class="circle-progress" :style="getProgressStyle('metadata')">
                   <div class="circle-inner">
@@ -222,7 +265,9 @@
                     <div class="module-info">
                       <h4 class="module-title">元数据检测</h4>
                       <div class="module-details">{{ getDetectionDetails('metadata') }}</div>
-                      <p class="module-status" :class="getDetectionStatusClass('metadata')">{{ getDetectionStatus('metadata') }}</p>
+                      <p class="module-status" :class="getDetectionStatusClass('metadata')">
+                        {{ getDetectionStatus('metadata') }}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -241,7 +286,9 @@
                     <div class="module-info">
                       <h4 class="module-title">元数据检测</h4>
                       <div class="module-details">{{ getDetectionDetails('metadata') }}</div>
-                      <p class="module-status" :class="getDetectionStatusClass('metadata')">{{ getDetectionStatus('metadata') }}</p>
+                      <p class="module-status" :class="getDetectionStatusClass('metadata')">
+                        {{ getDetectionStatus('metadata') }}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -280,7 +327,42 @@
               </div>
             </div>
             <div class="analysis-result">
-              <p class="waiting-text">等待检测完成后进行AI分析</p>
+              <!-- 如果有检测结果，显示AI分析结果 -->
+              <div
+                v-if="detectingDetail && detectingDetail.final_fusion_score !== undefined"
+                class="ai-result-details"
+              >
+                <div class="result-item">
+                  <label class="result-label">融合评分:</label>
+                  <span
+                    class="result-value score"
+                    :class="getScoreClass(detectingDetail.final_fusion_score)"
+                    >{{ detectingDetail.final_fusion_score }}</span
+                  >
+                </div>
+                <div class="result-item">
+                  <label class="result-label">是否钓鱼:</label>
+                  <span
+                    class="result-value phishing"
+                    :class="detectingDetail.final_is_phishing ? 'is-phishing' : 'not-phishing'"
+                  >
+                    {{ detectingDetail.final_is_phishing ? '是' : '否' }}
+                  </span>
+                </div>
+                <div class="result-item reason-item">
+                  <label class="result-label">分析原因:</label>
+                  <div
+                    class="result-value reason"
+                    :title="detectingDetail.final_reason || '暂无分析原因'"
+                  >
+                    {{ truncateText(detectingDetail.final_reason || '暂无分析原因', 100) }}
+                  </div>
+                </div>
+              </div>
+              <!-- 等待状态 -->
+              <div v-else class="waiting-analysis">
+                <p class="waiting-text">等待检测完成后进行AI分析</p>
+              </div>
             </div>
           </div>
         </div>
@@ -306,7 +388,78 @@
                 <line x1="16" y1="17" x2="8" y2="17" />
               </svg>
             </div>
-            <div class="extract-status">
+
+            <!-- 钓鱼邮件情况 -->
+            <div
+              v-if="detectingDetail && detectingDetail.final_is_phishing"
+              class="phishing-warning"
+            >
+              <div class="warning-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path
+                    d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"
+                  />
+                  <path d="M12 9v4" />
+                  <path d="m12 17 .01 0" />
+                </svg>
+              </div>
+              <p class="warning-text">钓鱼邮件无需分析</p>
+            </div>
+
+            <!-- 非钓鱼邮件且detection_stage为4的情况 -->
+            <div
+              v-else-if="
+                detectingDetail &&
+                !detectingDetail.final_is_phishing &&
+                detectingDetail.detection_stage === 4
+              "
+            >
+              <!-- reserved_field2为'2'时显示完整分析结果 -->
+              <div v-if="detectingDetail.reserved_field2 === '2'" class="extraction-details">
+                <div class="detail-item" v-if="detectingDetail.urgency_level">
+                  <label class="detail-label">紧急程度:</label>
+                  <span
+                    class="detail-value urgency"
+                    :class="getUrgencyClass(detectingDetail.urgency_level)"
+                    >{{ detectingDetail.urgency_level }}</span
+                  >
+                </div>
+                <div class="detail-item" v-if="detectingDetail.email_summary">
+                  <label class="detail-label">邮件总结:</label>
+                  <div class="detail-value summary" :title="detectingDetail.email_summary">
+                    {{ truncateText(detectingDetail.email_summary, 120) }}
+                  </div>
+                </div>
+                <div class="detail-item" v-if="detectingDetail.email_type">
+                  <label class="detail-label">邮件类型:</label>
+                  <span class="detail-value type">{{ detectingDetail.email_type }}</span>
+                </div>
+              </div>
+
+              <!-- reserved_field2为'0'时显示检测中状态 -->
+              <div v-else-if="detectingDetail.reserved_field2 === '0'" class="analyzing-status">
+                <div class="analyzing-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="3" />
+                    <path d="M12 1v6m0 6v6" />
+                    <path d="m15.5 3.5-1.5 1.5m0 6-1.5 1.5" />
+                    <path d="m8.5 3.5 1.5 1.5m0 6 1.5 1.5" />
+                    <path d="M1 12h6m6 0h6" />
+                    <path d="m3.5 8.5 1.5 1.5m6 0 1.5 1.5" />
+                    <path d="m3.5 15.5 1.5-1.5m6 0 1.5-1.5" />
+                  </svg>
+                </div>
+                <p class="analyzing-text">正在进行真伪性分析...</p>
+              </div>
+
+              <!-- reserved_field2为null或其他值时显示默认状态 -->
+              <div v-else class="extract-status">
+                <p class="extract-text">等待开始真伪性分析</p>
+              </div>
+            </div>
+
+            <!-- 默认状态 -->
+            <div v-else class="extract-status">
               <p class="extract-text">等待开始</p>
             </div>
           </div>
@@ -317,8 +470,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { fetchEmails, getDetectionOverview } from '@/api/email'
+import { ref, onMounted, onUnmounted } from 'vue'
+import {
+  fetchEmails,
+  getDetectionOverview,
+  startEmailDetection,
+  updateDetectionStage,
+  startStage3Detection,
+  setEmailDetectionStatus,
+  startStage4Detection,
+} from '@/api/email'
 import { showSuccess, showError, showInfo } from '@/utils/toast'
 
 // 响应式数据
@@ -330,70 +491,81 @@ const detectingDetail = ref(null)
 const detectingEmail = ref(null)
 const pendingEmails = ref([])
 
+// 第三阶段轮询相关变量
+const isPollingStage3 = ref(false)
+const stage3PollingTimer = ref(null)
+
+// 第四阶段轮询相关变量
+const isPollingStage4 = ref(false)
+const stage4PollingTimer = ref(null)
+
 // 计算阶段样式类
 const getStageClass = (stageNumber) => {
-  if (!detectingDetail.value || !detectingDetail.value.detection_stage) {
+  if (!detectingDetail.value || detectingDetail.value.detection_stage === undefined) {
     return 'stage-tilted' // 默认倾斜状态
   }
 
-  const currentStage = detectingDetail.value.detection_stage
-  const stageMap = {
-    content_detection: 2,
-    url_detection: 2,
-    metadata_detection: 2,
-    ai_analysis: 3,
-    information_extraction: 4,
-  }
+  const currentStageNumber = detectingDetail.value.detection_stage
 
-  const currentStageNumber = stageMap[currentStage] || 1
-  
-  // 特殊处理第二阶段：如果任何检测模块正在进行，则显示为active
-  if (stageNumber === 2 && detectingDetail.value) {
-    const contentStatus = detectingDetail.value.content_detection_status
-    const urlStatus = detectingDetail.value.url_detection_status
-    const metadataStatus = detectingDetail.value.metadata_detection_status
-    
-    // 如果有任何模块正在检测(状态为1)，则第二阶段为active
-    if (contentStatus === 1 || urlStatus === 1 || metadataStatus === 1) {
-      return 'stage-active'
-    }
-    
-    // 如果所有模块都完成了(状态为2或3)，则为completed
-    if ((contentStatus === 2 || contentStatus === 3) && 
-        (urlStatus === 2 || urlStatus === 3) && 
-        (metadataStatus === 2 || metadataStatus === 3)) {
-      return 'stage-completed'
-    }
-  }
-
-  if (stageNumber <= currentStageNumber) {
-    if (stageNumber === currentStageNumber) {
-      return 'stage-active' // 当前阶段高亮
-    } else {
-      return 'stage-completed' // 已完成阶段水平
-    }
+  if (stageNumber < currentStageNumber) {
+    return 'stage-completed' // 已完成阶段
+  } else if (stageNumber === currentStageNumber) {
+    return 'stage-active' // 当前激活阶段
   } else {
-    return 'stage-tilted' // 未开始阶段倾斜
+    return 'stage-tilted' // 未开始阶段
   }
+}
+
+// 获取评分样式类
+const getScoreClass = (score) => {
+  if (score >= 0.8) {
+    return 'high-risk'
+  } else if (score >= 0.5) {
+    return 'medium-risk'
+  } else {
+    return 'low-risk'
+  }
+}
+
+// 获取紧急程度样式类
+const getUrgencyClass = (urgency) => {
+  const urgencyLower = urgency?.toLowerCase()
+  if (urgencyLower === 'high' || urgencyLower === '高' || urgencyLower === '紧急') {
+    return 'urgency-high'
+  } else if (urgencyLower === 'medium' || urgencyLower === '中' || urgencyLower === '中等') {
+    return 'urgency-medium'
+  } else if (urgencyLower === 'low' || urgencyLower === '低' || urgencyLower === '普通') {
+    return 'urgency-low'
+  } else {
+    return 'urgency-normal'
+  }
+}
+
+// 文字截断函数
+const truncateText = (text, maxLength) => {
+  if (!text) return ''
+  if (text.length <= maxLength) return text
+  return text.substring(0, maxLength) + '...'
 }
 
 // 获取检测模块样式类
 const getDetectionClass = (type) => {
   if (!detectingDetail.value) return 'pending'
-  
+
   const statusField = `${type}_detection_status`
   const status = detectingDetail.value[statusField]
-  
+
   switch (status) {
     case 0:
       return 'pending' // 未检测
     case 1:
       return 'detecting' // 正在检测
-    case 2:
+    case 2: {
       // 检测完成，根据结果添加额外样式类
       const isPhishingField = `${type}_is_phishing`
       const isPhishing = detectingDetail.value[isPhishingField]
       return isPhishing ? 'completed phishing' : 'completed safe'
+    }
     case 3:
       return 'no-need' // 不需要检测
     default:
@@ -404,10 +576,10 @@ const getDetectionClass = (type) => {
 // 获取检测进度样式
 const getProgressStyle = (type) => {
   if (!detectingDetail.value) return { '--progress': '0%' }
-  
+
   const statusField = `${type}_detection_status`
   const status = detectingDetail.value[statusField]
-  
+
   switch (status) {
     case 0:
       return { '--progress': '0%' } // 未检测
@@ -425,30 +597,32 @@ const getProgressStyle = (type) => {
 // 获取检测详情信息
 const getDetectionDetails = (type) => {
   if (!detectingDetail.value) return ''
-  
+
   const statusField = `${type}_detection_status`
   const status = detectingDetail.value[statusField]
-  
+
   switch (status) {
     case 0:
       return '' // 未检测，不显示详情
-    case 1:
+    case 1: {
       // 正在检测，显示权重
       const weightField = `${type}_weight`
       const weight = detectingDetail.value[weightField]
       return weight ? `权重: ${Number(weight).toFixed(2)}` : ''
-    case 2:
+    }
+    case 2: {
       // 检测完成，显示结果
       const isPhishingField = `${type}_is_phishing`
       const probabilityField = `${type}_phishing_probability`
       const isPhishing = detectingDetail.value[isPhishingField]
       const probability = detectingDetail.value[probabilityField]
-      
+
       if (isPhishing) {
         return probability ? `概率: ${(Number(probability) * 100).toFixed(0)}%` : ''
       } else {
         return '正常'
       }
+    }
     case 3:
       return '无需检测' // 不需要检测
     default:
@@ -459,19 +633,20 @@ const getDetectionDetails = (type) => {
 // 获取检测状态文本
 const getDetectionStatus = (type) => {
   if (!detectingDetail.value) return '等待开始'
-  
+
   const statusField = `${type}_detection_status`
   const status = detectingDetail.value[statusField]
-  
+
   switch (status) {
     case 0:
       return '等待开始'
     case 1:
       return '正在检测...'
-    case 2:
+    case 2: {
       const isPhishingField = `${type}_is_phishing`
       const isPhishing = detectingDetail.value[isPhishingField]
       return isPhishing ? '钓鱼' : '正常'
+    }
     case 3:
       return '无需检测'
     default:
@@ -482,16 +657,16 @@ const getDetectionStatus = (type) => {
 // 获取检测状态样式类
 const getDetectionStatusClass = (type) => {
   if (!detectingDetail.value) return ''
-  
+
   const statusField = `${type}_detection_status`
   const status = detectingDetail.value[statusField]
-  
+
   if (status === 2) {
     const isPhishingField = `${type}_is_phishing`
     const isPhishing = detectingDetail.value[isPhishingField]
     return isPhishing ? 'phishing-result' : 'safe-result'
   }
-  
+
   return ''
 }
 
@@ -499,12 +674,42 @@ const getDetectionStatusClass = (type) => {
 const fetchDetectionOverview = async () => {
   try {
     const overviewResponse = await getDetectionOverview()
-    console.log('Detection Overview API 返回数据:', overviewResponse)
+    
 
     if (overviewResponse.success && overviewResponse.data) {
       detectingDetail.value = overviewResponse.data.detecting_detail
       detectingEmail.value = overviewResponse.data.detecting_email
       pendingEmails.value = overviewResponse.data.pending_emails || []
+
+      // 检查是否需要开始或停止轮询
+      if (detectingDetail.value) {
+        // 如果当前是第二阶段且还没有开始轮询，则开始轮询
+        if (detectingDetail.value.detection_stage === 2 && !pollingTimer) {
+  
+          startPollingDetectionStatus()
+        }
+        // 如果所有并行检测已完成，停止轮询并更新到第三阶段
+        else if (isAllDetectionCompleted(detectingDetail.value) && pollingTimer) {
+
+          stopPollingDetectionStatus()
+
+          // 调用API更新检测阶段到第三阶段
+          try {
+            const updateResponse = await updateDetectionStage(detectingEmail.value.id)
+            if (updateResponse.success) {
+      
+              // 刷新概览数据以获取最新状态
+              await fetchDetectionOverview()
+              // 启动第三阶段检测
+              await checkAndStartStage3Detection()
+            } else {
+              console.error('更新检测阶段失败:', updateResponse.message)
+            }
+          } catch (error) {
+            console.error('调用更新检测阶段API失败:', error)
+          }
+        }
+      }
     }
   } catch (overviewError) {
     console.error('获取检测概览失败:', overviewError)
@@ -534,6 +739,16 @@ const handleFetchEmails = async () => {
 
       // 获取邮件成功后，调用检测概览函数
       await fetchDetectionOverview()
+      await checkAndStartDetection()
+      await fetchDetectionOverview()
+
+      // 检查并启动第三阶段检测
+      await checkAndStartStage3Detection()
+      await fetchDetectionOverview()
+
+      // 检查钓鱼邮件结果并处理第四阶段
+      await checkPhishingResultAndHandleStage4()
+      await fetchDetectionOverview()
 
       // 3秒后清除提示信息
       setTimeout(() => {
@@ -549,6 +764,278 @@ const handleFetchEmails = async () => {
     isFetching.value = false
   }
 }
+
+// 轮询检测状态的定时器
+let pollingTimer = null
+
+// 检查三个并行检测是否都已完成
+const isAllDetectionCompleted = (detail) => {
+  if (!detail) return false
+
+  const statuses = [
+    detail.content_detection_status,
+    detail.url_detection_status,
+    detail.metadata_detection_status,
+  ]
+
+  // 检查所有状态是否都是完成(2)或无需检测(3)
+  return statuses.every((status) => status === 2 || status === 3)
+}
+
+// 开始轮询检测状态
+const startPollingDetectionStatus = () => {
+
+
+  pollingTimer = setInterval(async () => {
+    try {
+      await fetchDetectionOverview()
+
+      // 检查是否所有检测都已完成
+      if (isAllDetectionCompleted(detectingDetail.value)) {
+
+        stopPollingDetectionStatus()
+      }
+    } catch (error) {
+      console.error('轮询检测状态失败:', error)
+    }
+  }, 1000) // 每隔1秒轮询一次
+}
+
+// 停止轮询检测状态
+const stopPollingDetectionStatus = () => {
+  if (pollingTimer) {
+    clearInterval(pollingTimer)
+    pollingTimer = null
+  
+  }
+}
+
+// 检查并启动邮件检测
+const checkAndStartDetection = async () => {
+  try {
+    // 如果有正在检测的邮件，直接返回
+    if (detectingEmail.value) {
+  
+      return
+    }
+
+    // 如果没有正在检测的邮件，且有待检测邮件，启动第一封邮件的检测
+    if (pendingEmails.value && pendingEmails.value.length > 0) {
+      const firstPendingEmail = pendingEmails.value[0]
+
+
+      const response = await startEmailDetection(firstPendingEmail.id)
+
+      if (response.success) {
+        showSuccess('已启动邮件检测')
+        // 启动检测后，重新获取检测概览
+        await fetchDetectionOverview()
+      } else {
+        showError(response.message || '启动检测失败')
+      }
+    } else {
+  
+      showInfo('没有待检测的邮件')
+    }
+  } catch (error) {
+    console.error('检查并启动检测失败:', error)
+    showError('检查并启动检测失败')
+  }
+}
+
+// 第三阶段检测相关函数
+const checkAndStartStage3Detection = async () => {
+  if (!detectingDetail.value || !detectingEmail.value) {
+    return
+  }
+
+  // 检查是否在第三阶段且reserved_field1为'0'
+  if (
+    detectingDetail.value.detection_stage === 3 &&
+    detectingDetail.value.reserved_field1 === '0'
+  ) {
+    try {
+
+      const response = await startStage3Detection(detectingEmail.value.id)
+      if (response.success) {
+        showSuccess('已启动第三阶段综合分析')
+        // 启动轮询检查reserved_field1状态
+        startPollingStage3Status()
+      } else {
+        showError(response.message || '启动第三阶段检测失败')
+      }
+    } catch (error) {
+      console.error('启动第三阶段检测失败:', error)
+      showError('启动第三阶段检测失败')
+    }
+  }
+}
+
+// 开始轮询第三阶段状态
+const startPollingStage3Status = () => {
+  if (isPollingStage3.value) {
+    return
+  }
+
+  isPollingStage3.value = true
+
+  stage3PollingTimer.value = setInterval(async () => {
+    try {
+      await fetchDetectionOverview()
+
+      // 检查是否应该停止轮询
+      if (detectingDetail.value) {
+        const currentStage = detectingDetail.value.detection_stage
+        const reserved_field1 = detectingDetail.value.reserved_field1
+
+        // 停止条件：1) reserved_field1变为'1' 2) 不再是第三阶段 3) 检测完成(阶段4或5)
+        if (reserved_field1 === '1' || currentStage !== 3 || currentStage >= 4) {
+          stopPollingStage3Status()
+          if (reserved_field1 === '1') {
+            showSuccess('第三阶段综合分析完成')
+            // 第三阶段完成后，检查并处理第四阶段
+            await checkPhishingResultAndHandleStage4()
+          }
+        }
+      }
+    } catch (error) {
+      console.error('轮询第三阶段状态失败:', error)
+    }
+  }, 1000) // 每秒轮询一次
+}
+
+// 停止轮询第三阶段状态
+const stopPollingStage3Status = () => {
+  if (stage3PollingTimer.value) {
+    clearInterval(stage3PollingTimer.value)
+    stage3PollingTimer.value = null
+  }
+  isPollingStage3.value = false
+}
+
+// 开始轮询第四阶段状态
+const startPollingStage4Status = () => {
+  if (isPollingStage4.value) {
+    return
+  }
+
+  isPollingStage4.value = true
+
+  stage4PollingTimer.value = setInterval(async () => {
+    try {
+      await fetchDetectionOverview()
+
+      // 检查是否应该停止轮询
+      if (detectingDetail.value) {
+        const reserved_field2 = detectingDetail.value.reserved_field2
+
+        // 停止条件：reserved_field2变为'2'表示第四阶段完成
+        if (reserved_field2 === '2') {
+          stopPollingStage4Status()
+          
+          // 显示第四阶段分析结果
+          const detail = detectingDetail.value
+          const summaryInfo = `邮件摘要: ${detail.summary || '无'}`
+          const typeInfo = `邮件类型: ${detail.email_type || '未知'}`
+          const urgencyInfo = `紧急程度: ${detail.urgency_level || 1}`
+          const importanceInfo = `重要程度: ${detail.importance_level || 1}`
+          
+          showSuccess(`第四阶段分析完成！\n${summaryInfo}\n${typeInfo}\n${urgencyInfo}\n${importanceInfo}`)
+          
+          // 等待1秒后设置邮件为已完成
+          setTimeout(async () => {
+            try {
+               await setEmailDetectionStatus(detail.email_id)
+               // 刷新概览并启动下一个检测
+              await fetchDetectionOverview()
+              await checkAndStartDetection()
+            } catch (error) {
+              console.error('设置邮件完成状态失败:', error)
+              showError('设置邮件完成状态失败')
+            }
+          }, 1000)
+        }
+      }
+    } catch (error) {
+      console.error('轮询第四阶段状态失败:', error)
+    }
+  }, 1000) // 每秒轮询一次
+}
+
+// 停止轮询第四阶段状态
+const stopPollingStage4Status = () => {
+  if (stage4PollingTimer.value) {
+    clearInterval(stage4PollingTimer.value)
+    stage4PollingTimer.value = null
+  }
+  isPollingStage4.value = false
+}
+
+// 检查钓鱼邮件结果并处理第四阶段
+const checkPhishingResultAndHandleStage4 = async () => {
+  try {
+    if (!detectingDetail.value || !detectingDetail.value.id) {
+  
+      return
+    }
+
+    const emailId = detectingDetail.value.email_id
+    const isPhishing = detectingDetail.value.final_is_phishing
+    const detectionStage = detectingDetail.value.detection_stage
+
+  
+
+    // 只有在第三阶段完成后才处理
+    if (detectionStage < 4) {
+  
+      return
+    }
+
+    if (isPhishing) {
+      // 如果是钓鱼邮件，设置检测状态为完成
+
+      const response = await setEmailDetectionStatus(emailId)
+      if (response.success) {
+        showSuccess('钓鱼邮件已标记完成')
+        // 检测完成，刷新概览并启动下一个检测
+        await fetchDetectionOverview()
+        await checkAndStartDetection()
+      } else {
+        showError('设置钓鱼邮件状态失败')
+      }
+    } else {
+      // 如果不是钓鱼邮件，启动第四阶段检测
+
+      const response = await startStage4Detection(emailId)
+      if (response.success) {
+        showSuccess('第四阶段检测已启动')
+        // 启动轮询检查第四阶段状态
+        startPollingStage4Status()
+      } else {
+        showError('启动第四阶段检测失败')
+      }
+    }
+  } catch (error) {
+    console.error('处理第四阶段失败:', error)
+    showError('处理第四阶段失败')
+  }
+}
+
+// WebSocket消息处理器已移除
+
+// WebSocket相关逻辑已移除
+onMounted(() => {
+  fetchDetectionOverview()
+})
+
+onUnmounted(() => {
+  // 停止轮询检测状态
+  stopPollingDetectionStatus()
+  // 停止第三阶段轮询
+  stopPollingStage3Status()
+  // 停止第四阶段轮询
+  stopPollingStage4Status()
+})
 </script>
 
 <style scoped>
@@ -1901,7 +2388,8 @@ const handleFetchEmails = async () => {
 }
 
 @keyframes icon-scale {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -2261,12 +2749,15 @@ const handleFetchEmails = async () => {
 }
 
 @keyframes dot-glow {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 6px rgba(116, 185, 255, 0.8);
     transform: scale(1);
   }
   50% {
-    box-shadow: 0 0 12px rgba(116, 185, 255, 1), 0 0 20px rgba(0, 210, 255, 0.6);
+    box-shadow:
+      0 0 12px rgba(116, 185, 255, 1),
+      0 0 20px rgba(0, 210, 255, 0.6);
     transform: scale(1.1);
   }
 }
@@ -2347,12 +2838,13 @@ const handleFetchEmails = async () => {
 
 .email-card.current-detecting {
   border: 2px solid rgba(116, 185, 255, 0.8);
-  background: linear-gradient(135deg, 
-    rgba(116, 185, 255, 0.15), 
+  background: linear-gradient(
+    135deg,
+    rgba(116, 185, 255, 0.15),
     rgba(0, 210, 255, 0.1),
     rgba(255, 255, 255, 0.08)
   );
-  box-shadow: 
+  box-shadow:
     0 8px 32px rgba(116, 185, 255, 0.3),
     0 4px 16px rgba(0, 210, 255, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
@@ -2368,12 +2860,7 @@ const handleFetchEmails = async () => {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.2),
-    transparent
-  );
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
   animation: detecting-shimmer 3s infinite;
   pointer-events: none;
 }
@@ -2413,7 +2900,7 @@ const handleFetchEmails = async () => {
   font-size: 12px;
   font-weight: 600;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
-  box-shadow: 
+  box-shadow:
     0 2px 8px rgba(116, 185, 255, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
   border: 1px solid rgba(116, 185, 255, 0.4);
@@ -2424,7 +2911,9 @@ const handleFetchEmails = async () => {
   height: 10px;
   background: radial-gradient(circle, #ffffff, #74b9ff);
   border-radius: 50%;
-  animation: pulse 1.5s infinite, dot-glow 2s infinite;
+  animation:
+    pulse 1.5s infinite,
+    dot-glow 2s infinite;
   box-shadow: 0 0 6px rgba(116, 185, 255, 0.8);
 }
 
@@ -2667,11 +3156,7 @@ const handleFetchEmails = async () => {
 }
 
 .detection-circle.completed .circle-progress {
-  background: conic-gradient(
-    from 0deg,
-    rgba(0, 184, 148, 0.8) 0deg,
-    rgba(0, 184, 148, 0.8) 360deg
-  );
+  background: conic-gradient(from 0deg, rgba(0, 184, 148, 0.8) 0deg, rgba(0, 184, 148, 0.8) 360deg);
 }
 
 .detection-circle.no-need {
@@ -2680,7 +3165,8 @@ const handleFetchEmails = async () => {
 }
 
 @keyframes detection-pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     box-shadow: 0 0 20px rgba(116, 185, 255, 0.3);
   }
@@ -2701,11 +3187,7 @@ const handleFetchEmails = async () => {
 
 /* 检测完成状态的特殊样式 */
 .detection-circle.completed.phishing .circle-progress {
-  background: conic-gradient(
-    from 0deg,
-    rgba(239, 68, 68, 0.7) 0deg,
-    rgba(239, 68, 68, 0.7) 360deg
-  );
+  background: conic-gradient(from 0deg, rgba(239, 68, 68, 0.7) 0deg, rgba(239, 68, 68, 0.7) 360deg);
   box-shadow: 0 0 25px rgba(239, 68, 68, 0.4);
   border: 2px solid rgba(239, 68, 68, 0.6);
 }
@@ -2734,11 +3216,7 @@ const handleFetchEmails = async () => {
 }
 
 .detection-circle.completed.safe .circle-progress {
-  background: conic-gradient(
-    from 0deg,
-    rgba(5, 150, 105, 0.8) 0deg,
-    rgba(5, 150, 105, 0.8) 360deg
-  );
+  background: conic-gradient(from 0deg, rgba(5, 150, 105, 0.8) 0deg, rgba(5, 150, 105, 0.8) 360deg);
   box-shadow: 0 0 25px rgba(5, 150, 105, 0.4);
 }
 
@@ -2778,7 +3256,8 @@ const handleFetchEmails = async () => {
 }
 
 @keyframes phishing-alert {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     box-shadow: 0 4px 20px rgba(239, 68, 68, 0.3);
   }
@@ -2793,5 +3272,302 @@ const handleFetchEmails = async () => {
     font-size: 1rem;
     padding: 0.4rem 0.8rem;
   }
+}
+
+/* AI分析结果样式 */
+.ai-result-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.result-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.result-item.reason-item {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.result-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.result-value {
+  font-size: 1rem;
+  font-weight: 500;
+  color: white;
+}
+
+.result-value.score {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-weight: 700;
+  text-align: center;
+  min-width: 60px;
+}
+
+.result-value.score.high-risk {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.3);
+}
+
+.result-value.score.medium-risk {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
+}
+
+.result-value.score.low-risk {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
+}
+
+.result-value.phishing {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-weight: 700;
+  text-align: center;
+  min-width: 50px;
+}
+
+.result-value.phishing.is-phishing {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.3);
+}
+
+.result-value.phishing.not-phishing {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
+}
+
+.result-value.reason {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  max-height: 4.5em;
+  overflow: hidden;
+  word-wrap: break-word;
+  word-break: break-all;
+  cursor: help;
+  transition: all 0.3s ease;
+}
+
+.result-value.reason:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.waiting-analysis {
+  text-align: center;
+  padding: 2rem;
+}
+
+.waiting-analysis .waiting-text {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+}
+
+/* 第四阶段样式 */
+.phishing-warning {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.1) 0%, rgba(220, 38, 38, 0.05) 100%);
+  border: 2px solid rgba(239, 68, 68, 0.3);
+  border-radius: 12px;
+}
+
+.warning-icon {
+  width: 48px;
+  height: 48px;
+  color: #ef4444;
+  animation: warning-pulse 2s ease-in-out infinite;
+}
+
+.warning-text {
+  color: #ef4444;
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-align: center;
+  margin: 0;
+}
+
+@keyframes warning-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+.extraction-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.detail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.detail-item:last-child {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+}
+
+.detail-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.8);
+  min-width: 80px;
+  flex-shrink: 0;
+}
+
+.detail-value {
+  font-size: 1rem;
+  font-weight: 500;
+  color: white;
+}
+
+.detail-value.urgency {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-weight: 700;
+  text-align: center;
+  min-width: 60px;
+}
+
+.detail-value.urgency.urgency-high {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+  box-shadow: 0 2px 10px rgba(239, 68, 68, 0.3);
+}
+
+.detail-value.urgency.urgency-medium {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
+}
+
+.detail-value.urgency.urgency-low {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+  box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
+}
+
+.detail-value.urgency.urgency-normal {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  color: white;
+  box-shadow: 0 2px 10px rgba(107, 114, 128, 0.3);
+}
+
+.detail-value.summary {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  max-height: 4.5em;
+  overflow: hidden;
+  word-wrap: break-word;
+  word-break: break-all;
+  cursor: help;
+  transition: all 0.3s ease;
+}
+
+.detail-value.summary:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.detail-value.type {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(139, 92, 246, 0.3);
+}
+
+.analyzing-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+}
+
+.analyzing-icon {
+  width: 40px;
+  height: 40px;
+  color: rgba(116, 185, 255, 0.8);
+  animation: analyzing-spin 2s linear infinite;
+}
+
+.analyzing-text {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  text-align: center;
+  margin: 0;
+}
+
+@keyframes analyzing-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.extract-status {
+  text-align: center;
+  padding: 2rem;
+}
+
+.extract-text {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+  margin: 0;
 }
 </style>

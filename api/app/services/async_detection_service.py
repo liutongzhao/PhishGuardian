@@ -68,7 +68,7 @@ class AsyncDetectionService:
             with app.app_context():
                 # 执行检测
                 result = detection_func(*args, **kwargs)
-                
+                print('=================',result)
                 # 更新检测结果
                 self._update_detection_result(email_id, detection_type, result)
                 
@@ -110,7 +110,7 @@ class AsyncDetectionService:
             if not detail:
                 print(f"未找到邮件检测详情: email_id={email_id}")
                 return
-            
+            # print(result)
             # 提取结果数据
             phishing_probability = result.get('phishing_probability', 0.5)
             confidence = result.get('confidence', 0.5)
@@ -173,46 +173,38 @@ class AsyncDetectionService:
                 # if email:
                 #     from app.models.email import EmailDetectionStatus
                 #     email.detection_status = EmailDetectionStatus.COMPLETED.value
+                
+            elif detection_type == 'stage4_analysis':
+                # 处理第四阶段邮件内容分析结果
+                if result.get('success'):
+                    # print(result)
+                    analysis = result.get('analysis', {})
+                    
+                    # 更新邮件分析字段
+                    detail.email_summary = analysis.get('summary', '')
+                    detail.email_type = analysis.get('email_type', '')
+                    detail.urgency_level = analysis.get('urgency_level', 1)
+                    detail.importance_level = analysis.get('importance_level', 1)
+                    
+                    # 设置reserved_field2为'2'表示分析完成
+                    detail.reserved_field2 = '2'
+                    
+                    print(f"第四阶段分析完成，邮件ID: {email_id}")
+                    print(f"摘要: {analysis.get('summary', '')}")
+                    print(f"类型: {analysis.get('email_type', '')}")
+                    print(f"紧急程度: {analysis.get('urgency_level', 1)}")
+                    print(f"重要程度: {analysis.get('importance_level', 1)}")
+                    
+                else:
+                    # 分析失败，设置错误状态
+                    detail.reserved_field2 = '0'  # 保持检测中状态
+                    error_msg = result.get('error', '第四阶段分析失败')
+                    print(f"第四阶段分析失败，邮件ID: {email_id}, 错误: {error_msg}")
             
             db.session.commit()
             
-            # 发送检测完成通知
-            try:
-                email = Email.query.get(email_id)
-                if email:
-                    if detection_type == 'synthesis':
-                        # 第三阶段综合分析完成通知
-                        final_result = result.get('final', {})
-                        WebSocketService.push_message(
-                            user_id=email.user_id,
-                            message_type='synthesis_completed',
-                            data={
-                                'email_id': email_id,
-                                'detection_type': detection_type,
-                                'is_phishing': final_result.get('verdict', 'Safe') == 'Phishing',
-                                'fusion_score': final_result.get('phishing_probability', 0.5),
-                                'explanation': result.get('explanation', '综合分析完成'),
-                                'message': '第三阶段综合分析已完成'
-                            }
-                        )
-                        print(f"已发送第三阶段综合分析完成通知给用户{email.user_id}")
-                    else:
-                        # 普通检测完成通知
-                        WebSocketService.push_message(
-                            user_id=email.user_id,
-                            message_type='detection_completed',
-                            data={
-                                'email_id': email_id,
-                                'detection_type': detection_type,
-                                'is_phishing': is_phishing,
-                                'probability': phishing_probability,
-                                'confidence': confidence,
-                                'message': f'{detection_type}检测已完成'
-                            }
-                        )
-                        print(f"已发送{detection_type}检测完成通知给用户{email.user_id}")
-            except Exception as e:
-                print(f"发送检测完成通知失败: {str(e)}")
+            # WebSocket推送功能已移除
+            print(f"{detection_type}检测任务已完成，邮件ID: {email_id}")
             
         except Exception as e:
             db.session.rollback()

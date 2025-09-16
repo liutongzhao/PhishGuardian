@@ -291,3 +291,30 @@ export const startStage3Detection = (emailId) => {
     method: 'POST',
   })
 }
+
+// 更新检测阶段
+export const updateDetectionStage = (emailId) => {
+  return request({
+    url: '/email/update-detection-stage',
+    method: 'POST',
+    data: {
+      email_id: emailId,
+    },
+  })
+}
+
+// 设置邮件检测状态为2（钓鱼邮件）
+export const setEmailDetectionStatus = (emailId) => {
+  return request({
+    url: `/email/${emailId}/set-detection-status`,
+    method: 'POST',
+  })
+}
+
+// 启动第四阶段检测（邮件摘要分析）
+export const startStage4Detection = (emailId) => {
+  return request({
+    url: `/email/${emailId}/start-stage4-detection`,
+    method: 'POST',
+  })
+}

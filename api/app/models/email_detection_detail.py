@@ -206,6 +206,9 @@ class EmailDetectionDetail(db.Model):
         self.final_is_phishing = is_phishing
         self.final_reason = reason
         self.updated_at = datetime.now(pytz.timezone('Asia/Shanghai'))
+        self.reserved_field1 = '1'
+        self.detection_stage = 4
+        self.reserved_field2 = '0'
     
     def update_email_analysis(self, summary, email_type, urgency_level, importance_level):
         """更新邮件分析结果"""

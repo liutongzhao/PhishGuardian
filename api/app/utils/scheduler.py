@@ -105,44 +105,18 @@ class TaskScheduler:
                 result = EmailFetchService.fetch_emails()
                 print(f"邮件获取定时任务执行完成: {result['message']}")
                 
-                # 推送消息给所有有邮箱绑定的用户
-                if result.get('success') and result.get('data'):
-                    self._push_email_notification(result['data'])
+                # WebSocket推送功能已移除
+                # if result.get('success') and result.get('data'):
+                #     self._push_email_notification(result['data'])
                  
         except Exception as e:
             print(f"邮件获取定时任务执行失败: {e}")
     
-    def _push_email_notification(self, data):
-        """
-        推送邮件获取通知给用户
-        """
-        try:
-            from app.services.websocket_service import WebSocketService
-            from app.models.user_email_binding import UserEmailBinding
-            
-            # 获取所有有活跃邮箱绑定的用户
-            active_users = UserEmailBinding.query.filter(
-                UserEmailBinding.is_active == True,
-                UserEmailBinding.is_deleted == False
-            ).with_entities(UserEmailBinding.user_id).distinct().all()
-            
-            email_count = data.get('total_emails', 0)
-            success_count = data.get('success_count', 0)
-            error_count = data.get('error_count', 0)
-            
-            # 只有当有新邮件时才推送
-            if email_count > 0:
-                for user_tuple in active_users:
-                    user_id = user_tuple[0]
-                    WebSocketService.push_email_notification(
-                        user_id=user_id,
-                        email_count=email_count,
-                        success_count=success_count,
-                        error_count=error_count
-                    )
-                    print(f"已向用户 {user_id} 推送新邮件通知: {email_count} 封")
-            else:
-                print("本次邮件获取无新邮件，跳过推送")
+    # def _push_email_notification(self, data):
+    #     """
+    #     推送邮件获取通知给用户 - 已移除WebSocket推送功能
+    #     """
+    #     pass
                 
         except Exception as e:
             print(f"推送邮件通知失败: {e}")

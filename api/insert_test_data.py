@@ -1,0 +1,347 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+向email_detection_details表插入测试数据的脚本
+"""
+
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from app import create_app, db
+from app.models.email_detection_detail import EmailDetectionDetail, UrgencyLevel, ImportanceLevel, DetectionStatus
+from datetime import datetime
+import pytz
+
+def insert_test_data():
+    """插入测试数据"""
+    app = create_app()
+    
+    with app.app_context():
+        # 清除现有测试数据（可选）
+        # EmailDetectionDetail.query.delete()
+        
+        # 测试数据列表
+        test_data = [
+            {
+                'email_id': 1001,
+                'detection_stage': 4,
+                'parallel_detection_completed': True,
+                'content_weight': 0.4,
+                'metadata_weight': 0.3,
+                'url_weight': 0.3,
+                'content_detection_status': DetectionStatus.COMPLETED.value,
+                'url_detection_status': DetectionStatus.COMPLETED.value,
+                'metadata_detection_status': DetectionStatus.COMPLETED.value,
+                'content_phishing_probability': 0.85,
+                'url_phishing_probability': 0.92,
+                'metadata_phishing_probability': 0.78,
+                'content_confidence': 0.88,
+                'url_confidence': 0.95,
+                'metadata_confidence': 0.82,
+                'content_is_phishing': True,
+                'url_is_phishing': True,
+                'metadata_is_phishing': True,
+                'content_reason': '邮件内容包含典型的钓鱼诈骗语言，如紧急账户验证要求',
+                'url_reason': '链接指向已知的恶意域名，存在域名欺骗',
+                'metadata_reason': '发件人地址伪造，SPF记录验证失败',
+                'final_fusion_score': 0.87,
+                'final_is_phishing': True,
+                'final_reason': '综合分析显示该邮件为高风险钓鱼邮件，建议立即删除',
+                'email_summary': '伪装成银行的钓鱼邮件，要求用户点击链接验证账户信息',
+                'email_type': '金融诈骗',
+                'urgency_level': UrgencyLevel.URGENT.value,
+                'importance_level': ImportanceLevel.CRITICAL.value
+            },
+            {
+                'email_id': 1002,
+                'detection_stage': 4,
+                'parallel_detection_completed': True,
+                'content_weight': 0.5,
+                'metadata_weight': 0.25,
+                'url_weight': 0.25,
+                'content_detection_status': DetectionStatus.COMPLETED.value,
+                'url_detection_status': DetectionStatus.NO_NEED.value,
+                'metadata_detection_status': DetectionStatus.COMPLETED.value,
+                'content_phishing_probability': 0.15,
+                'url_phishing_probability': 0.0,
+                'metadata_phishing_probability': 0.12,
+                'content_confidence': 0.92,
+                'url_confidence': 0.0,
+                'metadata_confidence': 0.89,
+                'content_is_phishing': False,
+                'url_is_phishing': False,
+                'metadata_is_phishing': False,
+                'content_reason': '邮件内容为正常的工作汇报，无可疑内容',
+                'url_reason': '邮件中无链接',
+                'metadata_reason': '发件人身份验证通过，来源可信',
+                'final_fusion_score': 0.13,
+                'final_is_phishing': False,
+                'final_reason': '正常的工作邮件，安全可信',
+                'email_summary': '月度工作总结报告，包含项目进展和下月计划',
+                'email_type': '工作汇报',
+                'urgency_level': UrgencyLevel.MEDIUM.value,
+                'importance_level': ImportanceLevel.HIGH.value
+            },
+            {
+                'email_id': 1003,
+                'detection_stage': 4,
+                'parallel_detection_completed': True,
+                'content_weight': 0.35,
+                'metadata_weight': 0.35,
+                'url_weight': 0.3,
+                'content_detection_status': DetectionStatus.COMPLETED.value,
+                'url_detection_status': DetectionStatus.COMPLETED.value,
+                'metadata_detection_status': DetectionStatus.COMPLETED.value,
+                'content_phishing_probability': 0.72,
+                'url_phishing_probability': 0.68,
+                'metadata_phishing_probability': 0.75,
+                'content_confidence': 0.85,
+                'url_confidence': 0.78,
+                'metadata_confidence': 0.88,
+                'content_is_phishing': True,
+                'url_is_phishing': True,
+                'metadata_is_phishing': True,
+                'content_reason': '邮件声称中奖，要求提供个人信息领取奖金',
+                'url_reason': '链接指向可疑网站，域名注册时间很短',
+                'metadata_reason': '发件人使用免费邮箱，缺乏官方认证',
+                'final_fusion_score': 0.72,
+                'final_is_phishing': True,
+                'final_reason': '典型的中奖诈骗邮件，存在个人信息泄露风险',
+                'email_summary': '声称用户中了大奖，需要提供银行账户信息来领取奖金',
+                'email_type': '中奖诈骗',
+                'urgency_level': UrgencyLevel.HIGH.value,
+                'importance_level': ImportanceLevel.MEDIUM.value
+            },
+            {
+                'email_id': 1004,
+                'detection_stage': 4,
+                'parallel_detection_completed': True,
+                'content_weight': 0.6,
+                'metadata_weight': 0.2,
+                'url_weight': 0.2,
+                'content_detection_status': DetectionStatus.COMPLETED.value,
+                'url_detection_status': DetectionStatus.COMPLETED.value,
+                'metadata_detection_status': DetectionStatus.COMPLETED.value,
+                'content_phishing_probability': 0.08,
+                'url_phishing_probability': 0.05,
+                'metadata_phishing_probability': 0.03,
+                'content_confidence': 0.95,
+                'url_confidence': 0.92,
+                'metadata_confidence': 0.98,
+                'content_is_phishing': False,
+                'url_is_phishing': False,
+                'metadata_is_phishing': False,
+                'content_reason': '正常的产品推广邮件，内容合规',
+                'url_reason': '链接指向官方网站，安全可信',
+                'metadata_reason': '来自已验证的企业邮箱，信誉良好',
+                'final_fusion_score': 0.06,
+                'final_is_phishing': False,
+                'final_reason': '合法的营销邮件，来源可信',
+                'email_summary': '新产品发布通知，介绍产品特性和优惠活动',
+                'email_type': '产品推广',
+                'urgency_level': UrgencyLevel.LOW.value,
+                'importance_level': ImportanceLevel.LOW.value
+            },
+            {
+                'email_id': 1005,
+                'detection_stage': 4,
+                'parallel_detection_completed': True,
+                'content_weight': 0.45,
+                'metadata_weight': 0.3,
+                'url_weight': 0.25,
+                'content_detection_status': DetectionStatus.COMPLETED.value,
+                'url_detection_status': DetectionStatus.COMPLETED.value,
+                'metadata_detection_status': DetectionStatus.COMPLETED.value,
+                'content_phishing_probability': 0.91,
+                'url_phishing_probability': 0.88,
+                'metadata_phishing_probability': 0.83,
+                'content_confidence': 0.93,
+                'url_confidence': 0.91,
+                'metadata_confidence': 0.87,
+                'content_is_phishing': True,
+                'url_is_phishing': True,
+                'metadata_is_phishing': True,
+                'content_reason': '冒充快递公司，声称包裹需要重新投递并要求点击链接',
+                'url_reason': '恶意链接，可能下载木马病毒',
+                'metadata_reason': '发件人地址伪造快递公司官方邮箱',
+                'final_fusion_score': 0.89,
+                'final_is_phishing': True,
+                'final_reason': '高危钓鱼邮件，可能导致恶意软件感染',
+                'email_summary': '伪装成快递通知的钓鱼邮件，诱导用户点击恶意链接',
+                'email_type': '快递诈骗',
+                'urgency_level': UrgencyLevel.URGENT.value,
+                'importance_level': ImportanceLevel.HIGH.value
+            },
+            {
+                'email_id': 1006,
+                'detection_stage': 4,
+                'parallel_detection_completed': True,
+                'content_weight': 0.4,
+                'metadata_weight': 0.4,
+                'url_weight': 0.2,
+                'content_detection_status': DetectionStatus.COMPLETED.value,
+                'url_detection_status': DetectionStatus.NO_NEED.value,
+                'metadata_detection_status': DetectionStatus.COMPLETED.value,
+                'content_phishing_probability': 0.02,
+                'url_phishing_probability': 0.0,
+                'metadata_phishing_probability': 0.01,
+                'content_confidence': 0.98,
+                'url_confidence': 0.0,
+                'metadata_confidence': 0.99,
+                'content_is_phishing': False,
+                'url_is_phishing': False,
+                'metadata_is_phishing': False,
+                'content_reason': '正常的会议邀请邮件，内容规范',
+                'url_reason': '邮件中无外部链接',
+                'metadata_reason': '来自公司内部邮件系统，完全可信',
+                'final_fusion_score': 0.02,
+                'final_is_phishing': False,
+                'final_reason': '内部会议邀请，完全安全',
+                'email_summary': '下周部门会议邀请，包含会议议程和参会要求',
+                'email_type': '会议邀请',
+                'urgency_level': UrgencyLevel.MEDIUM.value,
+                'importance_level': ImportanceLevel.MEDIUM.value
+            },
+            {
+                'email_id': 1007,
+                'detection_stage': 4,
+                'parallel_detection_completed': True,
+                'content_weight': 0.5,
+                'metadata_weight': 0.25,
+                'url_weight': 0.25,
+                'content_detection_status': DetectionStatus.COMPLETED.value,
+                'url_detection_status': DetectionStatus.COMPLETED.value,
+                'metadata_detection_status': DetectionStatus.COMPLETED.value,
+                'content_phishing_probability': 0.65,
+                'url_phishing_probability': 0.58,
+                'metadata_phishing_probability': 0.62,
+                'content_confidence': 0.82,
+                'url_confidence': 0.79,
+                'metadata_confidence': 0.85,
+                'content_is_phishing': True,
+                'url_is_phishing': True,
+                'metadata_is_phishing': True,
+                'content_reason': '冒充社交平台，声称账户异常需要验证',
+                'url_reason': '钓鱼网站，模仿官方登录页面',
+                'metadata_reason': '发件人域名与官方域名相似但不同',
+                'final_fusion_score': 0.62,
+                'final_is_phishing': True,
+                'final_reason': '社交平台钓鱼攻击，可能窃取登录凭据',
+                'email_summary': '伪装成社交平台的安全通知，要求用户重新验证账户',
+                'email_type': '账户钓鱼',
+                'urgency_level': UrgencyLevel.HIGH.value,
+                'importance_level': ImportanceLevel.MEDIUM.value
+            },
+            {
+                'email_id': 1008,
+                'detection_stage': 4,
+                'parallel_detection_completed': True,
+                'content_weight': 0.3,
+                'metadata_weight': 0.3,
+                'url_weight': 0.4,
+                'content_detection_status': DetectionStatus.COMPLETED.value,
+                'url_detection_status': DetectionStatus.COMPLETED.value,
+                'metadata_detection_status': DetectionStatus.COMPLETED.value,
+                'content_phishing_probability': 0.12,
+                'url_phishing_probability': 0.18,
+                'metadata_phishing_probability': 0.09,
+                'content_confidence': 0.88,
+                'url_confidence': 0.85,
+                'metadata_confidence': 0.91,
+                'content_is_phishing': False,
+                'url_is_phishing': False,
+                'metadata_is_phishing': False,
+                'content_reason': '正常的订阅确认邮件，内容合规',
+                'url_reason': '链接指向合法的取消订阅页面',
+                'metadata_reason': '来自已认证的邮件营销平台',
+                'final_fusion_score': 0.14,
+                'final_is_phishing': False,
+                'final_reason': '合法的邮件订阅确认，安全可信',
+                'email_summary': '确认邮件订阅并提供取消订阅选项',
+                'email_type': '订阅确认',
+                'urgency_level': UrgencyLevel.LOW.value,
+                'importance_level': ImportanceLevel.LOW.value
+            },
+            {
+                'email_id': 1009,
+                'detection_stage': 4,
+                'parallel_detection_completed': True,
+                'content_weight': 0.4,
+                'metadata_weight': 0.35,
+                'url_weight': 0.25,
+                'content_detection_status': DetectionStatus.COMPLETED.value,
+                'url_detection_status': DetectionStatus.COMPLETED.value,
+                'metadata_detection_status': DetectionStatus.COMPLETED.value,
+                'content_phishing_probability': 0.78,
+                'url_phishing_probability': 0.82,
+                'metadata_phishing_probability': 0.74,
+                'content_confidence': 0.86,
+                'url_confidence': 0.89,
+                'metadata_confidence': 0.83,
+                'content_is_phishing': True,
+                'url_is_phishing': True,
+                'metadata_is_phishing': True,
+                'content_reason': '冒充税务部门，声称有退税需要处理',
+                'url_reason': '恶意网站，收集个人财务信息',
+                'metadata_reason': '伪造政府部门邮箱地址',
+                'final_fusion_score': 0.78,
+                'final_is_phishing': True,
+                'final_reason': '政府机构钓鱼诈骗，存在身份盗用风险',
+                'email_summary': '伪装成税务部门的退税通知，要求提供银行信息',
+                'email_type': '政府诈骗',
+                'urgency_level': UrgencyLevel.URGENT.value,
+                'importance_level': ImportanceLevel.CRITICAL.value
+            },
+            {
+                'email_id': 1010,
+                'detection_stage': 4,
+                'parallel_detection_completed': True,
+                'content_weight': 0.55,
+                'metadata_weight': 0.25,
+                'url_weight': 0.2,
+                'content_detection_status': DetectionStatus.COMPLETED.value,
+                'url_detection_status': DetectionStatus.COMPLETED.value,
+                'metadata_detection_status': DetectionStatus.COMPLETED.value,
+                'content_phishing_probability': 0.05,
+                'url_phishing_probability': 0.03,
+                'metadata_phishing_probability': 0.02,
+                'content_confidence': 0.96,
+                'url_confidence': 0.94,
+                'metadata_confidence': 0.97,
+                'content_is_phishing': False,
+                'url_is_phishing': False,
+                'metadata_is_phishing': False,
+                'content_reason': '正常的系统维护通知，内容专业规范',
+                'url_reason': '链接指向官方技术文档',
+                'metadata_reason': '来自IT部门官方邮箱，身份验证通过',
+                'final_fusion_score': 0.04,
+                'final_is_phishing': False,
+                'final_reason': '正常的系统维护通知，完全可信',
+                'email_summary': '系统升级维护通知，说明维护时间和影响范围',
+                'email_type': '系统通知',
+                'urgency_level': UrgencyLevel.MEDIUM.value,
+                'importance_level': ImportanceLevel.HIGH.value
+            }
+        ]
+        
+        # 插入数据
+        for data in test_data:
+            detection_detail = EmailDetectionDetail(**data)
+            db.session.add(detection_detail)
+        
+        # 提交事务
+        db.session.commit()
+        print(f"成功插入 {len(test_data)} 条测试数据")
+        
+        # 验证插入结果
+        total_count = EmailDetectionDetail.query.count()
+        phishing_count = EmailDetectionDetail.query.filter_by(final_is_phishing=True).count()
+        safe_count = EmailDetectionDetail.query.filter_by(final_is_phishing=False).count()
+        
+        print(f"数据库中总记录数: {total_count}")
+        print(f"钓鱼邮件数量: {phishing_count}")
+        print(f"安全邮件数量: {safe_count}")
+
+if __name__ == '__main__':
+    insert_test_data()

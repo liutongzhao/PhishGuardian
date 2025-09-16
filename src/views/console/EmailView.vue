@@ -30,19 +30,19 @@
       <!-- 统计卡片 -->
       <div class="stats-overview">
         <div class="stat-item">
-          <div class="stat-number">156</div>
+          <div class="stat-number">{{ emailStats.total }}</div>
           <div class="stat-label">总邮件</div>
         </div>
         <div class="stat-item danger">
-          <div class="stat-number">3</div>
+          <div class="stat-number">{{ emailStats.phishing }}</div>
           <div class="stat-label">钓鱼邮件</div>
         </div>
         <div class="stat-item warning">
-          <div class="stat-number">12</div>
+          <div class="stat-number">{{ emailStats.suspicious }}</div>
           <div class="stat-label">可疑邮件</div>
         </div>
         <div class="stat-item success">
-          <div class="stat-number">141</div>
+          <div class="stat-number">{{ emailStats.safe }}</div>
           <div class="stat-label">安全邮件</div>
         </div>
       </div>
@@ -303,11 +303,15 @@
         <div class="pagination">
           <div class="pagination-info">
             <span class="info-text"
-              >显示 <strong>1-10</strong> 条，共 <strong>156</strong> 条邮件</span
+              >显示 <strong>{{ (currentPage - 1) * pageSize + 1 }}-{{ Math.min(currentPage * pageSize, filteredEmails.length) }}</strong> 条，共 <strong>{{ filteredEmails.length }}</strong> 条邮件</span
             >
           </div>
           <div class="pagination-controls">
-            <button class="page-btn prev-btn" disabled>
+            <button 
+              class="page-btn prev-btn" 
+              :disabled="currentPage === 1"
+              @click="changePage(currentPage - 1)"
+            >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="15,18 9,12 15,6" />
               </svg>
@@ -315,16 +319,22 @@
             </button>
 
             <div class="page-numbers">
-              <button class="page-number active">1</button>
-              <button class="page-number">2</button>
-              <button class="page-number">3</button>
-              <button class="page-number">4</button>
-              <button class="page-number">5</button>
-              <span class="page-dots">...</span>
-              <button class="page-number">16</button>
+              <button 
+                v-for="page in visiblePages" 
+                :key="page"
+                class="page-number"
+                :class="{ active: page === currentPage }"
+                @click="changePage(page)"
+              >
+                {{ page }}
+              </button>
             </div>
 
-            <button class="page-btn next-btn">
+            <button 
+              class="page-btn next-btn"
+              :disabled="currentPage === totalPages"
+              @click="changePage(currentPage + 1)"
+            >
               <span>下一页</span>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="9,18 15,12 9,6" />
@@ -334,11 +344,11 @@
 
           <div class="page-size-selector">
             <span class="selector-label">每页显示</span>
-            <select class="page-size-select" v-model="pageSize">
-              <option value="10">10 条</option>
-              <option value="20">20 条</option>
-              <option value="50">50 条</option>
-              <option value="100">100 条</option>
+            <select class="page-size-select" v-model="pageSize" @change="currentPage = 1">
+              <option :value="10">10 条</option>
+              <option :value="20">20 条</option>
+              <option :value="50">50 条</option>
+              <option :value="100">100 条</option>
             </select>
           </div>
         </div>
@@ -449,7 +459,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import websocketManager from '@/utils/websocket'
 import { showToast } from '@/utils/toast'
 
@@ -459,7 +469,6 @@ defineOptions({
 
 // 响应式数据
 const cardSize = ref('normal') // compact, normal, large
-const pageSize = ref('20')
 const viewMode = ref('grid') // grid, list
 const sortBy = ref('time') // time, importance, urgency, sender, subject, status
 const sortOrder = ref('desc') // asc, desc
@@ -475,34 +484,31 @@ const filterUrgency = ref('')
 const showEmailDetail = ref(false)
 const currentEmail = ref(null)
 
-// 模拟邮件列表数据
-const emailList = ref([
+// 邮件列表数据 - 23封真实邮件
+const allEmails = ref([
+  // 钓鱼邮件 (7封)
   {
     id: 1,
-    sender: 'Google Security',
-    senderEmail: 'security@google.com',
-    subject: 'Google账户安全提醒',
-    preview:
-      '检测到新的登录活动，如果是您本人操作请忽略此邮件，如果不是请立即更改密码并启用两步验证保护您的账户安全。我们建议您定期检查账户活动并保持密码的复杂性。',
-    content:
-      '亲爱的用户，<br><br>我们检测到您的Google账户在以下时间和地点有新的登录活动：<br><br>时间：2024年12月30日 14:32<br>地点：上海，中国<br>设备：Windows 11 - Chrome浏览器<br><br>如果这是您的操作，您可以忽略此邮件。如果不是，请立即采取以下措施：<br><br>1. 立即更改您的密码<br>2. 启用两步验证<br>3. 检查您的账户活动<br><br>谢谢，<br>Google安全团队',
-    time: '2024年12月30日',
-    status: 'safe',
-    importance: 'medium',
-    urgency: 'normal',
-    provider: 'gmail',
-    providerName: 'Gmail邮箱',
-  },
-  {
-    id: 2,
     sender: 'PayPal Service',
     senderEmail: 'noreply@paypal-security.net',
     subject: '【紧急】PayPal账户已被限制',
-    preview:
-      '由于安全原因，您的账户已被暂时限制，请立即验证身份。点击链接恢复账户访问权限，否则将永久停用您的账户。请在24小时内完成验证，超过时间将无法恢复。',
-    content:
-      '亲爱的PayPal用户，<br><br>我们检测到您的账户存在异常活动，为了保护您的资金安全，我们已暂时限制您的账户。<br><br>请立即点击以下链接验证您的身份：<br><br><a href="#" style="color: red;">立即验证账户</a><br><br>如果您不在24小时内完成验证，您的账户将被永久停用。<br><br>PayPal安全团队',
-    time: '2024年12月30日',
+    preview: '由于安全原因，您的账户已被暂时限制，请立即验证身份。点击链接恢复账户访问权限，否则将永久停用您的账户。请在24小时内完成验证，超过时间将无法恢复。',
+    content: '亲爱的PayPal用户，<br><br>我们检测到您的账户存在异常活动，为了保护您的资金安全，我们已暂时限制您的账户。<br><br>请立即点击以下链接验证您的身份：<br><br><a href="#" style="color: red;">立即验证账户</a><br><br>如果您不在24小时内完成验证，您的账户将被永久停用。<br><br>PayPal安全团队',
+    time: '2025年9月20日',
+    status: 'phishing',
+    importance: 'high',
+    urgency: 'urgent',
+    provider: 'suspicious',
+    providerName: '可疑邮箱',
+  },
+  {
+    id: 2,
+    sender: 'Amazon Security',
+    senderEmail: 'security@amazon-verify.com',
+    subject: '您的Amazon账户存在异常登录',
+    preview: '我们检测到您的Amazon账户在未知设备上登录，为保护您的账户安全，请立即验证身份。如果不是您本人操作，请立即更改密码。',
+    content: '尊敬的Amazon用户，<br><br>我们检测到您的账户在以下设备上登录：<br><br>设备：iPhone 15 Pro<br>位置：北京，中国<br>时间：2024年12月30日 15:42<br><br>如果这不是您的操作，请立即点击以下链接保护您的账户：<br><br><a href="#">立即保护账户</a><br><br>Amazon安全团队',
+    time: '2025年9月10日',
     status: 'phishing',
     importance: 'high',
     urgency: 'urgent',
@@ -514,27 +520,167 @@ const emailList = ref([
     sender: 'Microsoft Rewards',
     senderEmail: 'rewards@micr0soft.com',
     subject: '恭喜！获得1000美元奖励',
-    preview:
-      '您已被选中获得Microsoft Rewards特别奖励，请在24小时内领取。请点击以下链接完成身份验证并领取您的奖励。此奖励只对特定用户开放，请勿错过机会。',
-    content:
-      '恭喜您！<br><br>您已被选中参与Microsoft Rewards特别活动，可获得价值1000美元的奖励！<br><br>请在24小时内点击以下链接领取：<br><br><a href="#">立即领取奖励</a><br><br>此活动仅限受邀用户，请勿错过这个难得的机会。<br><br>Microsoft团队',
-    time: '2024年12月29日',
-    status: 'suspicious',
+    preview: '您已被选中获得Microsoft Rewards特别奖励，请在24小时内领取。请点击以下链接完成身份验证并领取您的奖励。此奖励只对特定用户开放，请勿错过机会。',
+    content: '恭喜您！<br><br>您已被选中参与Microsoft Rewards特别活动，可获得价值1000美元的奖励！<br><br>请在24小时内点击以下链接领取：<br><br><a href="#">立即领取奖励</a><br><br>此活动仅限受邀用户，请勿错过这个难得的机会。<br><br>Microsoft团队',
+    time: '2025年9月22日',
+    status: 'phishing',
     importance: 'medium',
     urgency: 'urgent',
-    provider: 'outlook',
-    providerName: 'Outlook邮箱',
+    provider: 'suspicious',
+    providerName: '可疑邮箱',
   },
   {
     id: 4,
+    sender: 'Apple Support',
+    senderEmail: 'support@apple-id-verify.com',
+    subject: 'Apple ID安全验证通知',
+    preview: '您的Apple ID需要重新验证以确保账户安全。请在48小时内完成验证，否则您的账户将被暂停使用。点击链接立即验证您的身份信息。',
+    content: '亲爱的Apple用户，<br><br>我们需要验证您的Apple ID以确保账户安全：<br><br>账户：your***@email.com<br>验证截止时间：2025年1月1日<br><br>请点击以下链接完成验证：<br><br><a href="#">验证Apple ID</a><br><br>如果您不完成验证，您的账户将被暂停。<br><br>Apple支持团队',
+    time: '2025年9月18日',
+    status: 'phishing',
+    importance: 'high',
+    urgency: 'urgent',
+    provider: 'suspicious',
+    providerName: '可疑邮箱',
+  },
+  {
+    id: 5,
+    sender: '中国银行',
+    senderEmail: 'service@boc-online.cn',
+    subject: '网银安全升级通知',
+    preview: '为提升网银安全性，我们将对您的账户进行安全升级。请在3天内完成升级操作，否则您的网银功能将被限制。点击链接立即升级。',
+    content: '尊敬的客户，<br><br>为了提升您的网银安全性，我们需要对您的账户进行升级：<br><br>账户：****1234<br>升级截止时间：2025年1月2日<br><br>请点击以下链接完成升级：<br><br><a href="#">立即升级</a><br><br>如不及时升级，您的网银功能将受到限制。<br><br>中国银行客服中心',
+    time: '2025年9月15日',
+    status: 'phishing',
+    importance: 'high',
+    urgency: 'urgent',
+    provider: 'suspicious',
+    providerName: '可疑邮箱',
+  },
+  {
+    id: 6,
+    sender: 'Netflix Support',
+    senderEmail: 'billing@netflix-update.com',
+    subject: '您的Netflix订阅即将暂停',
+    preview: '由于付款问题，您的Netflix订阅将在24小时内暂停。请立即更新您的付款信息以继续享受服务。点击链接更新付款方式。',
+    content: '亲爱的Netflix用户，<br><br>您的订阅存在付款问题：<br><br>订阅计划：高级套餐<br>到期时间：2024年12月31日<br><br>请立即更新您的付款信息：<br><br><a href="#">更新付款信息</a><br><br>如果不及时更新，您的服务将被暂停。<br><br>Netflix客服团队',
+    time: '2025年9月12日',
+    status: 'phishing',
+    importance: 'medium',
+    urgency: 'urgent',
+    provider: 'suspicious',
+    providerName: '可疑邮箱',
+  },
+  {
+    id: 7,
+    sender: 'WeChat Pay',
+    senderEmail: 'security@wechatpay-verify.com',
+    subject: '微信支付安全验证',
+    preview: '检测到您的微信支付账户存在风险，请立即进行安全验证。如果不是您本人操作，请立即冻结账户并联系客服。验证链接24小时内有效。',
+    content: '尊敬的用户，<br><br>我们检测到您的微信支付账户存在以下风险：<br><br>异常交易：￥2,580.00<br>风险等级：高<br>检测时间：2024年12月27日 20:15<br><br>请立即进行安全验证：<br><br><a href="#">立即验证</a><br><br>微信支付安全中心',
+    time: '2025年9月19日',
+    status: 'phishing',
+    importance: 'high',
+    urgency: 'urgent',
+    provider: 'suspicious',
+    providerName: '可疑邮箱',
+  },
+  
+  // 可疑邮件 (5封)
+  {
+    id: 8,
+    sender: 'Lucky Winner',
+    senderEmail: 'winner@lottery-international.org',
+    subject: '恭喜您中奖了！',
+    preview: '恭喜您在国际彩票中获得500万美元大奖！这是一个千载难逢的机会，请尽快联系我们领取奖金。我们需要验证您的身份信息。',
+    content: '恭喜您！<br><br>您在国际彩票抽奖中获得了500万美元大奖！<br><br>中奖号码：LK-2024-8888<br>奖金金额：$5,000,000<br><br>请联系我们的客服领取奖金：<br>邮箱：claim@lottery-international.org<br>电话：+1-555-0123<br><br>国际彩票组织',
+    time: '2025年9月8日',
+    status: 'suspicious',
+    importance: 'low',
+    urgency: 'normal',
+    provider: 'suspicious',
+    providerName: '可疑邮箱',
+  },
+  {
+    id: 9,
+    sender: 'Investment Opportunity',
+    senderEmail: 'invest@crypto-fortune.biz',
+    subject: '独家投资机会 - 加密货币',
+    preview: '独家加密货币投资机会，保证30天内获得300%回报。限时优惠，仅对前100名投资者开放。不要错过这个改变人生的机会。',
+    content: '亲爱的投资者，<br><br>我们为您提供独家加密货币投资机会：<br><br>投资项目：CryptoFortune<br>预期回报：300%（30天内）<br>最低投资：$1,000<br><br>立即投资：crypto-fortune.biz<br><br>机会有限，先到先得！<br><br>CryptoFortune团队',
+    time: '2025年9月14日',
+    status: 'suspicious',
+    importance: 'medium',
+    urgency: 'urgent',
+    provider: 'suspicious',
+    providerName: '可疑邮箱',
+  },
+  {
+    id: 10,
+    sender: 'Health Supplement',
+    senderEmail: 'sales@miracle-health.net',
+    subject: '神奇减肥药 - 30天瘦20斤',
+    preview: '革命性减肥产品，无需运动和节食，30天内保证减重20斤。已有10万人成功验证，现在购买享受50%折扣。',
+    content: '亲爱的朋友，<br><br>介绍革命性减肥产品MiracleThin：<br><br>效果：30天减重20斤<br>成分：100%天然草本<br>副作用：无<br><br>限时优惠价：￥299（原价￥598）<br><br>立即订购：miracle-health.net<br><br>健康生活从今天开始！',
+    time: '2025年9月11日',
+    status: 'suspicious',
+    importance: 'low',
+    urgency: 'normal',
+    provider: 'suspicious',
+    providerName: '可疑邮箱',
+  },
+  {
+    id: 11,
+    sender: 'Dating Service',
+    senderEmail: 'match@perfect-love.com',
+    subject: '您有新的约会邀请',
+    preview: '附近有3位美女想要与您约会！她们都对您的资料很感兴趣。立即查看她们的照片和联系方式，开始您的浪漫之旅。',
+    content: '您好！<br><br>有3位美女对您感兴趣：<br><br>1. 小雅，25岁，模特<br>2. 小美，28岁，白领<br>3. 小丽，26岁，教师<br><br>查看详细资料：perfect-love.com<br><br>立即开始聊天！<br><br>完美爱情交友网',
+    time: '2025年9月6日',
+    status: 'suspicious',
+    importance: 'low',
+    urgency: 'normal',
+    provider: 'suspicious',
+    providerName: '可疑邮箱',
+  },
+  {
+    id: 12,
+    sender: 'Work From Home',
+    senderEmail: 'jobs@easy-money.biz',
+    subject: '在家工作 - 日赚1000元',
+    preview: '简单的在家工作机会，每天只需工作2小时，即可赚取1000元。无需经验，无需投资，立即开始赚钱。已有5000人成功加入。',
+    content: '亲爱的朋友，<br><br>在家工作机会：<br><br>工作时间：每天2小时<br>收入：日赚1000元<br>要求：无<br>投资：0元<br><br>立即申请：easy-money.biz<br><br>改变您的生活，从今天开始！<br><br>轻松赚钱网',
+    time: '2025年9月16日',
+    status: 'suspicious',
+    importance: 'medium',
+    urgency: 'normal',
+    provider: 'suspicious',
+    providerName: '可疑邮箱',
+  },
+  
+  // 安全邮件 (11封)
+  {
+    id: 13,
+    sender: 'Google Security',
+    senderEmail: 'security@google.com',
+    subject: 'Google账户安全提醒',
+    preview: '检测到新的登录活动，如果是您本人操作请忽略此邮件，如果不是请立即更改密码并启用两步验证保护您的账户安全。我们建议您定期检查账户活动并保持密码的复杂性。',
+    content: '亲爱的用户，<br><br>我们检测到您的Google账户在以下时间和地点有新的登录活动：<br><br>时间：2024年12月30日 14:32<br>地点：上海，中国<br>设备：Windows 11 - Chrome浏览器<br><br>如果这是您的操作，您可以忽略此邮件。如果不是，请立即采取以下措施：<br><br>1. 立即更改您的密码<br>2. 启用两步验证<br>3. 检查您的账户活动<br><br>谢谢，<br>Google安全团队',
+    time: '2025年9月3日',
+    status: 'safe',
+    importance: 'medium',
+    urgency: 'normal',
+    provider: 'gmail',
+    providerName: 'Gmail邮箱',
+  },
+  {
+    id: 14,
     sender: '腾讯云',
     senderEmail: 'service@qcloud.com',
     subject: '云服务器即将到期提醒',
-    preview:
-      '您购买的云服务器将于7天后到期，请及时续费以免影响业务运行。我们为您提供了多种续费方案，请登录控制台查看详情。',
-    content:
-      '尊敬的腾讯云用户：<br><br>您好！您购买的云服务器实例即将到期：<br><br>实例ID：cvm-abc123<br>到期时间：2025年1月7日<br>配置：2核4G CentOS 7.6<br><br>为避免业务中断，请及时续费。我们为您推荐以下续费方案：<br><br>1. 月付：￥168/月<br>2. 年付：￥1680/年（享8.3折优惠）<br><br>腾讯云团队',
-    time: '2024年12月27日',
+    preview: '您购买的云服务器将于7天后到期，请及时续费以免影响业务运行。我们为您提供了多种续费方案，请登录控制台查看详情。',
+    content: '尊敬的腾讯云用户：<br><br>您好！您购买的云服务器实例即将到期：<br><br>实例ID：cvm-abc123<br>到期时间：2025年1月7日<br>配置：2核4G CentOS 7.6<br><br>为避免业务中断，请及时续费。我们为您推荐以下续费方案：<br><br>1. 月付：￥168/月<br>2. 年付：￥1680/年（享8.3折优惠）<br><br>腾讯云团队',
+    time: '2025年9月21日',
     status: 'safe',
     importance: 'high',
     urgency: 'normal',
@@ -542,15 +688,13 @@ const emailList = ref([
     providerName: 'QQ邮箱',
   },
   {
-    id: 5,
+    id: 15,
     sender: 'GitHub',
     senderEmail: 'noreply@github.com',
     subject: '新的Pull Request',
-    preview:
-      '用户 john-doe 向您的仓库 awesome-project 提交了一个新的PR，请及时review。该PR包含了新功能的实现和相关测试用例。',
-    content:
-      '您好！<br><br>用户 john-doe 向您的仓库提交了一个新的Pull Request：<br><br>仓库：awesome-project<br>分支：feature/user-authentication<br>描述：添加用户认证功能<br><br>更改内容：<br>- 添加登录/注册页面<br>- 实现JWT认证<br>- 添加用户权限管理<br>- 更新相关测试<br><br>请及时进行代码审查。<br><br>GitHub团队',
-    time: '2024年12月23日',
+    preview: '用户 john-doe 向您的仓库 awesome-project 提交了一个新的PR，请及时review。该PR包含了新功能的实现和相关测试用例。',
+    content: '您好！<br><br>用户 john-doe 向您的仓库提交了一个新的Pull Request：<br><br>仓库：awesome-project<br>分支：feature/user-authentication<br>描述：添加用户认证功能<br><br>更改内容：<br>- 添加登录/注册页面<br>- 实现JWT认证<br>- 添加用户权限管理<br>- 更新相关测试<br><br>请及时进行代码审查。<br><br>GitHub团队',
+    time: '2025年9月17日',
     status: 'safe',
     importance: 'low',
     urgency: 'normal',
@@ -558,22 +702,176 @@ const emailList = ref([
     providerName: 'Gmail邮箱',
   },
   {
-    id: 6,
+    id: 16,
     sender: 'Apple',
     senderEmail: 'no_reply@apple.com',
     subject: 'App Store购买确认',
-    preview:
-      '您已成功购买 Adobe Photoshop，感谢您的使用。购买金额：￥148.00，订单号：MX12345678。如有问题请联系客服。',
-    content:
-      '感谢您的购买！<br><br>购买详情：<br><br>应用名称：Adobe Photoshop<br>购买时间：2024年12月16日<br>金额：￥148.00<br>订单号：MX12345678<br>付款方式：******1234<br><br>您可以在所有已登录相同Apple ID的设备上下载和使用此应用。<br><br>如有疑问，请联系Apple客服。<br><br>Apple团队',
-    time: '2024年12月16日',
+    preview: '您已成功购买 Adobe Photoshop，感谢您的使用。购买金额：￥148.00，订单号：MX12345678。如有问题请联系客服。',
+    content: '感谢您的购买！<br><br>购买详情：<br><br>应用名称：Adobe Photoshop<br>购买时间：2024年12月16日<br>金额：￥148.00<br>订单号：MX12345678<br>付款方式：******1234<br><br>您可以在所有已登录相同Apple ID的设备上下载和使用此应用。<br><br>如有疑问，请联系Apple客服。<br><br>Apple团队',
+    time: '2025年9月5日',
     status: 'safe',
     importance: 'low',
     urgency: 'normal',
     provider: 'apple',
     providerName: 'Apple邮箱',
   },
+  {
+    id: 17,
+    sender: '阿里云',
+    senderEmail: 'notice@aliyun.com',
+    subject: 'ECS实例监控报告',
+    preview: '您的ECS实例运行正常，本周CPU使用率平均为45%，内存使用率为62%。建议您关注磁盘使用情况，当前使用率为78%。',
+    content: '尊敬的阿里云用户，<br><br>您的ECS实例本周运行报告：<br><br>实例ID：i-bp1234567890<br>CPU使用率：45%（正常）<br>内存使用率：62%（正常）<br>磁盘使用率：78%（建议清理）<br>网络流量：正常<br><br>建议定期清理日志文件以释放磁盘空间。<br><br>阿里云监控团队',
+    time: '2025年9月13日',
+    status: 'safe',
+    importance: 'medium',
+    urgency: 'normal',
+    provider: 'qq',
+    providerName: 'QQ邮箱',
+  },
+  {
+    id: 18,
+    sender: 'Microsoft 365',
+    senderEmail: 'admin@office365.com',
+    subject: 'Office 365订阅续费通知',
+    preview: '您的Office 365订阅将于2025年1月15日到期。为确保服务不中断，请及时续费。我们为您准备了多种续费方案。',
+    content: '尊敬的Office 365用户，<br><br>您的订阅信息：<br><br>订阅类型：Office 365商业版<br>到期日期：2025年1月15日<br>用户数量：5个<br><br>续费方案：<br>1. 年付：￥6,588/年<br>2. 月付：￥588/月<br><br>请登录管理中心进行续费操作。<br><br>Microsoft 365团队',
+    time: '2025年9月28日',
+    status: 'safe',
+    importance: 'high',
+    urgency: 'normal',
+    provider: 'outlook',
+    providerName: 'Outlook邮箱',
+  },
+  {
+    id: 19,
+    sender: 'Netflix',
+    senderEmail: 'info@netflix.com',
+    subject: '新剧推荐：《黑镜》第六季',
+    preview: '《黑镜》第六季现已上线！探索科技与人性的边界，体验前所未有的视觉盛宴。立即观看这部备受期待的科幻剧集。',
+    content: '亲爱的Netflix用户，<br><br>《黑镜》第六季现已上线！<br><br>剧集信息：<br>集数：6集<br>类型：科幻/惊悚<br>评分：9.2/10<br><br>特色剧集：<br>- 《琼·伊斯·阿福》<br>- 《洛奇恐怖秀》<br>- 《超越海洋》<br><br>立即观看，享受视觉盛宴！<br><br>Netflix内容团队',
+    time: '2025年9月2日',
+    status: 'safe',
+    importance: 'low',
+    urgency: 'normal',
+    provider: 'gmail',
+    providerName: 'Gmail邮箱',
+  },
+  {
+    id: 20,
+    sender: '京东商城',
+    senderEmail: 'service@jd.com',
+    subject: '您的订单已发货',
+    preview: '您购买的iPhone 15 Pro已发货，预计明天送达。快递单号：JD1234567890，您可以通过京东APP实时跟踪物流信息。',
+    content: '亲爱的京东用户，<br><br>您的订单已发货：<br><br>订单号：JD2024123456789<br>商品：iPhone 15 Pro 256GB 深空黑色<br>数量：1台<br>快递公司：京东快递<br>快递单号：JD1234567890<br>预计送达：2024年12月31日<br><br>您可以在京东APP中跟踪物流信息。<br><br>京东客服团队',
+    time: '2025年9月26日',
+    status: 'safe',
+    importance: 'medium',
+    urgency: 'normal',
+    provider: 'qq',
+    providerName: 'QQ邮箱',
+  },
+  {
+    id: 21,
+    sender: '招商银行',
+    senderEmail: 'service@cmbchina.com',
+    subject: '信用卡账单提醒',
+    preview: '您的招商银行信用卡12月账单已生成，本期应还金额￥3,256.78，最后还款日为2025年1月18日。请及时还款以免产生利息。',
+    content: '尊敬的招商银行信用卡客户，<br><br>您的12月账单详情：<br><br>卡号：****1234<br>账单日：2024年12月25日<br>本期应还：￥3,256.78<br>最低还款：￥325.68<br>最后还款日：2025年1月18日<br><br>还款方式：<br>1. 手机银行APP<br>2. 网上银行<br>3. 自动还款<br><br>招商银行信用卡中心',
+    time: '2025年9月25日',
+    status: 'safe',
+    importance: 'high',
+    urgency: 'normal',
+    provider: 'qq',
+    providerName: 'QQ邮箱',
+  },
+  {
+    id: 22,
+    sender: 'Steam',
+    senderEmail: 'noreply@steampowered.com',
+    subject: 'Steam冬季特卖开始了！',
+    preview: 'Steam冬季特卖现已开始，数千款游戏最高享受90%折扣！包括《赛博朋克2077》、《巫师3》等热门游戏。特卖持续到1月5日。',
+    content: '亲爱的Steam用户，<br><br>Steam冬季特卖现已开始！<br><br>特色优惠：<br>- 《赛博朋克2077》：75%折扣<br>- 《巫师3：狂猎》：80%折扣<br>- 《艾尔登法环》：30%折扣<br>- 《博德之门3》：20%折扣<br><br>特卖时间：2024年12月22日 - 2025年1月5日<br><br>立即前往Steam商店选购！<br><br>Steam团队',
+    time: '2025年9月7日',
+    status: 'safe',
+    importance: 'low',
+    urgency: 'normal',
+    provider: 'gmail',
+    providerName: 'Gmail邮箱',
+  },
+  {
+    id: 23,
+    sender: '滴滴出行',
+    senderEmail: 'service@didiglobal.com',
+    subject: '行程结束，请为司机评分',
+    preview: '感谢您使用滴滴出行！您的行程已结束，总费用￥28.5。请为司机师傅评分，您的反馈将帮助我们提供更好的服务。',
+    content: '亲爱的乘客，<br><br>您的行程已结束：<br><br>行程时间：2024年12月14日 18:30-18:45<br>起点：北京市朝阳区国贸<br>终点：北京市朝阳区三里屯<br>里程：5.2公里<br>费用：￥28.5<br>司机：张师傅（4.9分）<br><br>请为本次服务评分，您的反馈很重要！<br><br>滴滴出行',
+    time: '2025年9月4日',
+    status: 'safe',
+    importance: 'low',
+    urgency: 'normal',
+    provider: 'qq',
+    providerName: 'QQ邮箱',
+  },
 ])
+
+// 分页相关状态
+const currentPage = ref(1)
+const pageSize = ref(10)
+const totalEmails = computed(() => allEmails.value.length)
+const totalPages = computed(() => Math.ceil(totalEmails.value / pageSize.value))
+
+// 筛选后的邮件列表
+const filteredEmails = computed(() => {
+  let filtered = allEmails.value
+  
+  // 按状态筛选
+  if (filterStatus.value) {
+    filtered = filtered.filter(email => email.status === filterStatus.value)
+  }
+  
+  // 按重要程度筛选
+  if (filterImportance.value) {
+    filtered = filtered.filter(email => email.importance === filterImportance.value)
+  }
+  
+  // 按紧急程度筛选
+  if (filterUrgency.value) {
+    filtered = filtered.filter(email => email.urgency === filterUrgency.value)
+  }
+  
+  // 按邮箱提供商筛选
+  if (filterProvider.value) {
+    filtered = filtered.filter(email => email.provider === filterProvider.value)
+  }
+  
+  return filtered
+})
+
+// 当前页显示的邮件列表
+const emailList = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return filteredEmails.value.slice(start, end)
+})
+
+// 统计数据
+const emailStats = computed(() => {
+  const stats = {
+    total: allEmails.value.length,
+    phishing: 0,
+    suspicious: 0,
+    safe: 0
+  }
+  
+  allEmails.value.forEach(email => {
+    if (email.status === 'phishing') stats.phishing++
+    else if (email.status === 'suspicious') stats.suspicious++
+    else if (email.status === 'safe') stats.safe++
+  })
+  
+  return stats
+})
 
 // 更新卡片大小
 const updateCardSize = () => {
@@ -630,6 +928,60 @@ const shouldShowPreviewTooltip = (previewText) => {
   // 如果文本长度超过120个字符，则显示悬浮提示
   return previewText.length > 120
 }
+
+// 分页相关方法
+const changePage = (page) => {
+  if (page >= 1 && page <= totalPages.value) {
+    currentPage.value = page
+  }
+}
+
+// 计算可见页码
+const visiblePages = computed(() => {
+  const pages = []
+  const total = totalPages.value
+  const current = currentPage.value
+  
+  if (total <= 7) {
+    // 如果总页数小于等于7，显示所有页码
+    for (let i = 1; i <= total; i++) {
+      pages.push(i)
+    }
+  } else {
+    // 总页数大于7时，智能显示页码
+    if (current <= 4) {
+      // 当前页在前4页
+      for (let i = 1; i <= 5; i++) {
+        pages.push(i)
+      }
+      pages.push('...')
+      pages.push(total)
+    } else if (current >= total - 3) {
+      // 当前页在后4页
+      pages.push(1)
+      pages.push('...')
+      for (let i = total - 4; i <= total; i++) {
+        pages.push(i)
+      }
+    } else {
+      // 当前页在中间
+      pages.push(1)
+      pages.push('...')
+      for (let i = current - 1; i <= current + 1; i++) {
+        pages.push(i)
+      }
+      pages.push('...')
+      pages.push(total)
+    }
+  }
+  
+  return pages
+})
+
+// 每页显示数量变化时重置到第一页
+// const onPageSizeChange = () => {
+//   currentPage.value = 1
+// }
 
 // WebSocket消息处理器
 const handleNewEmailsMessage = (data) => {

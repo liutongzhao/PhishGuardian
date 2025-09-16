@@ -24,17 +24,29 @@ class WebSocketManager {
       return
     }
 
+    // 如果存在旧连接，先断开
+    if (this.socket) {
+      console.log('🔄 断开旧的WebSocket连接')
+      this.socket.disconnect()
+      this.socket = null
+    }
+
     try {
       const authStore = useAuthStore()
       const token = authStore.token
 
-      console.log('检查认证token:', token ? '存在' : '不存在')
+      console.log('🔗 检查认证token:', token ? '存在' : '不存在')
+      if (token) {
+        console.log('🔑 Token内容:', token.substring(0, 50) + '...')
+        console.log('🔍 Token长度:', token.length)
+      }
+      
       if (!token) {
-        console.log('未找到认证token，跳过WebSocket连接')
+        console.log('❌ 未找到认证token，跳过WebSocket连接')
         return
       }
 
-      console.log('正在连接WebSocket到 http://localhost:5000...')
+      console.log('🚀 正在连接WebSocket到 http://localhost:5000...')
 
       this.socket = io('http://localhost:5000', {
         auth: {
@@ -45,7 +57,7 @@ class WebSocketManager {
         forceNew: true,
       })
 
-      console.log('WebSocket实例已创建，设置事件处理器...')
+      console.log('⚙️ WebSocket实例已创建，设置事件处理器...')
       this.setupEventHandlers()
     } catch (error) {
       console.error('WebSocket连接失败:', error)
@@ -66,6 +78,7 @@ class WebSocketManager {
     // 连接成功
     this.socket.on('connect', () => {
       console.log('✅ WebSocket连接成功！')
+      console.log('🆔 Socket ID:', this.socket.id)
       this.isConnected = true
       this.reconnectAttempts = 0
     })
@@ -78,7 +91,28 @@ class WebSocketManager {
     // 接收推送消息
     this.socket.on('push_message', (message) => {
       console.log('📨 收到推送消息:', message)
+      console.log('📨 推送消息详细内容:', JSON.stringify(message, null, 2))
+      console.log('📨 当前socket ID:', this.socket.id)
+      console.log('📨 当前连接状态:', this.isConnected)
       this.handlePushMessage(message)
+    })
+
+    // 监听所有事件（调试用）
+    this.socket.onAny((eventName, ...args) => {
+      console.log('🔔 WebSocket收到事件:', eventName, args)
+    })
+
+    // 添加更多事件监听器进行调试
+    this.socket.on('message', (data) => {
+      console.log('📩 收到message事件:', data)
+    })
+
+    this.socket.on('notification', (data) => {
+      console.log('🔔 收到notification事件:', data)
+    })
+
+    this.socket.on('detection_task_completed', (data) => {
+      console.log('✅ 直接收到detection_task_completed事件:', data)
     })
 
     // 连接错误
@@ -106,29 +140,32 @@ class WebSocketManager {
    * 处理推送消息
    */
   handlePushMessage(message) {
+    console.log('🎯 handlePushMessage被调用，消息内容:', message)
     const { type, data } = message
+    console.log('📋 消息类型:', type, '数据:', data)
 
-    switch (type) {
-      case 'new_emails':
-        this.handleNewEmailsNotification(data)
-        break
-      case 'detection_completed':
-        this.handleDetectionCompletedNotification(data)
-        break
-      default:
-        console.log('未知消息类型:', type, data)
-    }
-
-    // 调用注册的消息处理器
-    if (this.messageHandlers.has(type)) {
-      const handlers = this.messageHandlers.get(type)
-      handlers.forEach((handler) => {
-        try {
-          handler(data)
-        } catch (error) {
-          console.error('消息处理器执行失败:', error)
-        }
-      })
+    // 只处理检测完成事件
+    if (type === 'detection_task_completed') {
+      console.log('🔍 处理detection_task_completed消息')
+      this.handleDetectionTaskCompletedNotification(data)
+      
+      // 调用注册的消息处理器
+      if (this.messageHandlers.has(type)) {
+        const handlers = this.messageHandlers.get(type)
+        console.log(`🎯 找到${handlers.length}个处理器，开始执行`)
+        handlers.forEach((handler, index) => {
+          try {
+            console.log(`🚀 执行处理器${index + 1}`)
+            handler(data)
+          } catch (error) {
+            console.error('❌ 消息处理器执行失败:', error)
+          }
+        })
+      } else {
+        console.log('⚠️ 没有找到对应类型的消息处理器:', type)
+      }
+    } else {
+      console.log('❓ 忽略其他消息类型:', type)
     }
   }
 
@@ -163,6 +200,17 @@ class WebSocketManager {
       confidence,
       message,
     })
+  }
+
+  /**
+   * 处理单个检测任务完成通知
+   */
+  handleDetectionTaskCompletedNotification(data) {
+    console.log('🔍 收到检测任务完成通知:', data)
+    const { email_id, detection_type, is_phishing, probability, confidence, message } = data
+
+    console.log(`✅ 邮件ID: ${email_id} | 检测类型: ${detection_type} | 结果: ${is_phishing ? '钓鱼邮件' : '安全'} | 概率: ${probability} | 置信度: ${confidence}`)
+    console.log(`📝 消息: ${message}`)
   }
 
   /**

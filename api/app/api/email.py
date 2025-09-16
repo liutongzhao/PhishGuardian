@@ -44,6 +44,268 @@ def get_email_providers(current_user):
         )
 
 
+@email_bp.route('/<int:email_id>/set-detection-status', methods=['POST'])
+@token_required
+def set_email_detection_status(current_user, email_id):
+    """设置邮件检测状态为2（钓鱼邮件）"""
+    
+    try:
+        # 获取邮件信息
+        email = Email.query.get(email_id)
+        print(email.detection_status)
+        if not email:
+            return api_response(
+                success=False,
+                message='邮件不存在'
+            )
+        
+        # 检查邮件是否属于当前用户
+        if email.user_id != current_user.id:
+            return api_response(
+                success=False,
+                message='无权限访问该邮件'
+            )
+        
+        # 设置邮件检测状态为2（完成）
+        email.detection_status = 2
+        
+        # 获取检测详情并设置为第四阶段
+        detail = EmailDetectionDetail.find_by_email_id(email_id)
+        if detail:
+            detail.detection_stage = 4
+            detail.reserved_field2 = '2'  # 标记为钓鱼邮件，直接完成
+            db.session.add(detail)
+        
+        db.session.add(email)
+        db.session.commit()
+        
+        return api_response(
+            success=True,
+            message='邮件检测状态设置成功',
+            data={
+                'email_id': email_id,
+                'detection_status': 2,
+                'detection_stage': 4
+            }
+        )
+        
+    except Exception as e:
+        db.session.rollback()
+        return api_response(
+            success=False,
+            message=f'设置检测状态失败: {str(e)}'
+        )
+
+
+@email_bp.route('/<int:email_id>/start-stage4-detection', methods=['POST'])
+@token_required
+def start_stage4_detection(current_user, email_id):
+    """开始第四阶段检测（邮件摘要分析）"""
+    try:
+        # 获取邮件信息
+        email = Email.query.get(email_id)
+        if not email:
+            return api_response(
+                success=False,
+                message='邮件不存在'
+            )
+        
+        # 检查邮件是否属于当前用户
+        if email.user_id != current_user.id:
+            return api_response(
+                success=False,
+                message='无权限访问该邮件'
+            )
+        
+        # 获取检测详情
+        detail = EmailDetectionDetail.find_by_email_id(email_id)
+        if not detail:
+            return api_response(
+                success=False,
+                message='邮件检测详情不存在'
+            )
+        
+        # 设置检测阶段为第四阶段
+        detail.detection_stage = 4
+        detail.reserved_field2 = '0'  # 标记为检测中
+        db.session.add(detail)
+        db.session.commit()
+        
+        # 启动异步第四阶段检测任务
+        from app.services.async_detection_service import async_detection_service
+        from app.services.detection_agents import DEFAULT_API_URL, DEFAULT_API_KEY, DEFAULT_MODEL
+        
+        # 提交第四阶段分析任务
+        async_detection_service.submit_detection_task(
+            email_id, 'stage4_analysis',
+            lambda content: _analyze_email_content_stage4(content, DEFAULT_API_URL, DEFAULT_API_KEY, DEFAULT_MODEL),
+            email.content or ''
+        )
+        
+        return api_response(
+            success=True,
+            message='第四阶段检测已启动',
+            data={
+                'email_id': email_id,
+                'detection_stage': 4,
+                'status': 'detecting'
+            }
+        )
+        
+    except Exception as e:
+        db.session.rollback()
+        return api_response(
+            success=False,
+            message=f'启动第四阶段检测失败: {str(e)}'
+        )
+
+
+def _analyze_email_content_stage4(content: str, api_url: str, api_key: str, model: str) -> dict:
+    """第四阶段邮件内容分析"""
+    import requests
+    import json
+    
+    try:
+        # 构建提示词
+        prompt = f"""
+请分析以下邮件内容，并以严格的JSON格式返回分析结果：
+
+邮件内容：
+{content}
+
+请提取以下信息：
+1. 邮件摘要（文本形式，不超过100字）
+2. 紧急程度（"紧急" 或 "普通"）
+3. 重要程度（"高"、"中" 或 "低"）
+4. 邮件类型（不超过5个字概括，如：广告营销、会员续费、会议提醒等）
+5. 是否需要添加日程（1表示需要，0表示不需要）
+6. 如果需要添加日程，请提供日程名称
+
+请严格按照以下JSON格式返回：
+{{
+  "summary": "邮件摘要",
+  "urgency_level": "普通",
+  "importance_level": "中",
+  "email_type": "邮件类型",
+  "need_schedule": 0,
+  "schedule_name": "日程名称（如果需要的话）"
+}}
+"""
+        
+        # 调用大模型API
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {api_key}'
+        }
+        
+        data = {
+            'model': model,
+            'messages': [
+                {
+                    'role': 'user',
+                    'content': prompt
+                }
+            ],
+            'temperature': 0,
+            'max_tokens': 1000
+        }
+        
+        response = requests.post(api_url, headers=headers, json=data, timeout=30)
+        response.raise_for_status()
+        
+        result = response.json()
+        content_text = result['choices'][0]['message']['content'].strip()
+        
+        # 尝试解析JSON响应
+        try:
+            # 提取JSON部分
+            if '```json' in content_text:
+                json_start = content_text.find('```json') + 7
+                json_end = content_text.find('```', json_start)
+                content_text = content_text[json_start:json_end].strip()
+            elif '{' in content_text and '}' in content_text:
+                json_start = content_text.find('{')
+                json_end = content_text.rfind('}') + 1
+                content_text = content_text[json_start:json_end]
+            
+            analysis_result = json.loads(content_text)
+            
+            return {
+                'success': True,
+                'analysis': analysis_result
+            }
+            
+        except json.JSONDecodeError as e:
+            print(f"JSON解析失败: {str(e)}, 原始内容: {content_text}")
+            return {
+                'success': False,
+                'error': f'JSON解析失败: {str(e)}',
+                'raw_content': content_text
+            }
+            
+    except Exception as e:
+        print(f"第四阶段分析失败: {str(e)}")
+        return {
+            'success': False,
+            'error': str(e)
+        }
+
+
+@email_bp.route('/update-detection-stage', methods=['POST'])
+@token_required
+def update_detection_stage(current_user):
+    """更新检测阶段"""
+    try:
+        data = request.get_json()
+        email_id = data.get('email_id')
+        
+        if not email_id:
+            return api_response(
+                success=False,
+                message='邮件ID不能为空'
+            )
+        
+        # 查找邮件检测详情
+        detection_detail = EmailDetectionDetail.find_by_email_id(email_id)
+        if not detection_detail:
+            return api_response(
+                success=False,
+                message='未找到邮件检测详情'
+            )
+        
+        # 验证邮件所有权
+        email = Email.query.get(email_id)
+        if not email or email.user_id != current_user.id:
+            return api_response(
+                success=False,
+                message='无权限操作此邮件'
+            )
+        
+        # 更新检测阶段为第三阶段，reserved_field1设置为0
+        detection_detail.detection_stage = 3
+        detection_detail.reserved_field1 = 0
+        
+        db.session.add(detection_detail)
+        db.session.commit()
+        
+        return api_response(
+            success=True,
+            message='检测阶段更新成功',
+            data={
+                'email_id': email_id,
+                'detection_stage': 3,
+                'reserved_field1': 0
+            }
+        )
+        
+    except Exception as e:
+        db.session.rollback()
+        return api_response(
+            success=False,
+            message=f'更新检测阶段失败: {str(e)}'
+        )
+
+
 
 
 
@@ -63,35 +325,6 @@ def fetch_emails():
             'success': False,
             'message': f'邮件获取失败: {str(e)}'
         }), 500
-
-
-@email_bp.route('/test-push', methods=['POST'])
-@token_required
-def test_push_notification(current_user):
-    """测试WebSocket推送通知"""
-    try:
-        from app.services.websocket_service import WebSocketService
-        
-        # 推送测试消息
-        result = WebSocketService.push_email_notification(
-            user_id=current_user.id,
-            email_count=3,
-            success_count=3,
-            error_count=0
-        )
-        
-        return jsonify({
-            'success': True,
-            'message': '测试推送已发送',
-            'push_result': result
-        }), 200
-    
-    except Exception as e:
-        return jsonify({
-            'success': False,
-            'message': f'测试推送失败: {str(e)}'
-        }), 500
-
 
 
 
@@ -222,18 +455,28 @@ def start_stage3_detection(current_user, email_id):
         
         # 获取检测详情
         detail = EmailDetectionDetail.find_by_email_id(email_id)
+        print("detail",detail)
         if not detail:
             return api_response(
                 success=False,
                 message='邮件检测详情不存在'
             )
         
-        # 检查是否已完成第二阶段检测
-        # if not detail.parallel_detection_completed:
-        #     return api_response(
-        #         success=False,
-        #         message='第二阶段检测尚未完成，无法开始第三阶段检测'
-        #     )
+        # 检查是否已完成第二阶段检测（检查所有并行检测状态）
+        statuses = [
+            detail.content_detection_status,
+            detail.url_detection_status,
+            detail.metadata_detection_status
+        ]
+        
+        # 检查所有状态是否都是完成(2)或无需检测(3)
+        all_completed = all(status in [2, 3] for status in statuses)
+        
+        if not all_completed:
+            return api_response(
+                success=False,
+                message='第二阶段检测尚未完成，无法开始第三阶段检测'
+            )
         
         # 设置检测阶段为第三阶段
         detail.detection_stage = 3
@@ -267,6 +510,12 @@ def start_stage3_detection(current_user, email_id):
             "url": detail.url_weight,
             "metadata": detail.metadata_weight
         }
+
+        print("权重为：",weights)
+        print("text_result",text_result)
+        print("url_result",url_result)
+        print("metadata_result",metadata_result)
+
         
         # 启动异步综合分析任务
         from app.services.async_detection_service import async_detection_service

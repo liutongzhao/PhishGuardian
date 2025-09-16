@@ -56,8 +56,34 @@ class WebSocketService:
                     return False
                 
                 # 验证token并获取用户信息
-                user_info = JWTUtils.verify_token(token)
-                print(f"Token验证结果: {user_info}")
+                try:
+                    import jwt
+                    from flask import current_app
+                    
+                    # 先尝试解码token查看内容
+                    try:
+                        decoded_without_verify = jwt.decode(token, options={"verify_signature": False})
+                        print(f"Token内容（未验证签名）: {decoded_without_verify}")
+                        
+                        # 检查过期时间
+                        exp = decoded_without_verify.get('exp')
+                        if exp:
+                            from datetime import datetime
+                            exp_time = datetime.fromtimestamp(exp)
+                            current_time = datetime.utcnow()
+                            print(f"Token过期时间: {exp_time}")
+                            print(f"当前时间: {current_time}")
+                            print(f"Token是否过期: {current_time > exp_time}")
+                    except Exception as decode_error:
+                        print(f"Token解码失败: {decode_error}")
+                    
+                    user_info = JWTUtils.verify_token(token)
+                    print(f"Token验证结果: {user_info}")
+                    
+                except Exception as verify_error:
+                    print(f"Token验证过程出错: {verify_error}")
+                    user_info = None
+                
                 if not user_info:
                     print("WebSocket连接被拒绝：无效token")
                     return False
