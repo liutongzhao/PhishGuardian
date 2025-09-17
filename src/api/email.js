@@ -284,6 +284,23 @@ export const startEmailDetection = (emailId) => {
   })
 }
 
+// 获取邮件列表
+export const getEmailList = (params = {}) => {
+  return request({
+    url: '/email/list',
+    method: 'GET',
+    params
+  })
+}
+
+// 获取邮件统计数据
+export const getEmailStatistics = () => {
+  return request({
+    url: '/email/statistics',
+    method: 'GET'
+  })
+}
+
 // 启动第三阶段检测（综合分析）
 export const startStage3Detection = (emailId) => {
   return request({
@@ -316,5 +333,13 @@ export const startStage4Detection = (emailId) => {
   return request({
     url: `/email/${emailId}/start-stage4-detection`,
     method: 'POST',
+  })
+}
+
+// 获取邮件检测详情
+export const getEmailDetectionDetail = (emailId) => {
+  return request({
+    url: `/email/${emailId}/detection-detail`,
+    method: 'GET',
   })
 }

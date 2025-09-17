@@ -1021,9 +1021,9 @@ const checkPhishingResultAndHandleStage4 = async () => {
   }
 }
 
-// WebSocket消息处理器已移除
 
-// WebSocket相关逻辑已移除
+
+
 onMounted(() => {
   fetchDetectionOverview()
 })

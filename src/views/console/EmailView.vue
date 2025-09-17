@@ -21,7 +21,6 @@
           </svg>
           刷新邮件
         </button>
-
       </div>
     </div>
 
@@ -30,19 +29,15 @@
       <!-- 统计卡片 -->
       <div class="stats-overview">
         <div class="stat-item">
-          <div class="stat-number">{{ emailStats.total }}</div>
+          <div class="stat-number">{{ statsLoading ? '...' : emailStats.total }}</div>
           <div class="stat-label">总邮件</div>
         </div>
         <div class="stat-item danger">
-          <div class="stat-number">{{ emailStats.phishing }}</div>
+          <div class="stat-number">{{ statsLoading ? '...' : emailStats.phishing }}</div>
           <div class="stat-label">钓鱼邮件</div>
         </div>
-        <div class="stat-item warning">
-          <div class="stat-number">{{ emailStats.suspicious }}</div>
-          <div class="stat-label">可疑邮件</div>
-        </div>
         <div class="stat-item success">
-          <div class="stat-number">{{ emailStats.safe }}</div>
+          <div class="stat-number">{{ statsLoading ? '...' : emailStats.safe }}</div>
           <div class="stat-label">安全邮件</div>
         </div>
       </div>
@@ -55,21 +50,26 @@
             <label class="filter-label">具体邮箱</label>
             <select class="filter-select" v-model="filterEmail">
               <option value="">全部邮箱</option>
-              <option value="user@gmail.com">user@gmail.com</option>
-              <option value="business@outlook.com">business@outlook.com</option>
-              <option value="support@company.cn">support@company.cn</option>
-              <option value="admin@qq.com">admin@qq.com</option>
+              <option
+                v-for="binding in emailBindings"
+                :key="binding.id"
+                :value="binding.email_address"
+              >
+                {{ binding.email_address }}
+              </option>
             </select>
           </div>
           <div class="filter-item">
             <label class="filter-label">邮箱厂商</label>
             <select class="filter-select" v-model="filterProvider">
               <option value="">全部</option>
-              <option value="gmail">Gmail</option>
-              <option value="outlook">Outlook</option>
-              <option value="yahoo">Yahoo</option>
-              <option value="qq">QQ邮箱</option>
-              <option value="163">163邮箱</option>
+              <option
+                v-for="provider in emailProviders"
+                :key="provider.id"
+                :value="provider.display_name"
+              >
+                {{ provider.display_name }}
+              </option>
             </select>
           </div>
           <div class="filter-item">
@@ -77,7 +77,6 @@
             <select class="filter-select" v-model="filterStatus">
               <option value="">全部</option>
               <option value="safe">安全</option>
-              <option value="suspicious">可疑</option>
               <option value="phishing">钓鱼</option>
             </select>
           </div>
@@ -85,17 +84,17 @@
             <label class="filter-label">重要程度</label>
             <select class="filter-select" v-model="filterImportance">
               <option value="">全部</option>
-              <option value="high">高</option>
-              <option value="medium">中</option>
-              <option value="low">低</option>
+              <option value="高">高</option>
+              <option value="中">中</option>
+              <option value="低">低</option>
             </select>
           </div>
           <div class="filter-item">
             <label class="filter-label">紧急程度</label>
             <select class="filter-select" v-model="filterUrgency">
               <option value="">全部</option>
-              <option value="urgent">紧急</option>
-              <option value="normal">普通</option>
+              <option value="紧急">紧急</option>
+              <option value="普通">普通</option>
             </select>
           </div>
         </div>
@@ -179,8 +178,14 @@
     <div class="main-content">
       <!-- 邮件列表容器 -->
       <div class="email-list-container">
+        <!-- 加载状态 -->
+        <div v-if="loading" class="loading-container">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">正在加载邮件列表...</div>
+        </div>
+
         <!-- 网格布局容器 -->
-        <div class="email-grid" :class="[`size-${cardSize}`, `view-${viewMode}`]">
+        <div v-else class="email-grid" :class="[`size-${cardSize}`, `view-${viewMode}`]">
           <!-- 邮件卡片循环渲染 -->
           <div
             v-for="email in emailList"
@@ -191,15 +196,19 @@
           >
             <!-- 卡片头部 -->
             <div class="card-header">
-              <div class="provider-logo">
-                <div class="provider-icon" :class="email.provider">
-                  <svg v-if="email.provider === 'gmail'" viewBox="0 0 24 24" fill="currentColor">
+              <div class="receiver-info">
+                <div class="provider-icon" :class="getProviderClass(email.provider)">
+                  <svg
+                    v-if="getProviderClass(email.provider) === 'gmail'"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
                     <path
                       d="M24 5.457v13.909c0 .904-.732 1.636-1.636 1.636h-3.819V11.73L12 16.64l-6.545-4.91v9.273H1.636A1.636 1.636 0 0 1 0 19.366V5.457c0-2.023 2.309-3.178 3.927-1.964L5.5 4.64 12 9.548l6.5-4.909 1.573-1.147C21.69 2.28 24 3.434 24 5.457z"
                     />
                   </svg>
                   <svg
-                    v-else-if="email.provider === 'outlook'"
+                    v-else-if="getProviderClass(email.provider) === 'outlook'"
                     viewBox="0 0 24 24"
                     fill="currentColor"
                   >
@@ -207,13 +216,17 @@
                       d="M7.462 0C3.316 0 0 3.247 0 7.302c0 4.056 3.316 7.302 7.462 7.302 4.147 0 7.463-3.246 7.463-7.302C14.925 3.247 11.609 0 7.462 0zM24 4.781v14.438c0 .431-.349.781-.781.781H15.61V4.781H24z"
                     />
                   </svg>
-                  <svg v-else-if="email.provider === 'qq'" viewBox="0 0 24 24" fill="currentColor">
+                  <svg
+                    v-else-if="getProviderClass(email.provider) === 'qq'"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
                     <path
                       d="M21.395 15.035a39.67 39.67 0 0 0-.803-2.264l-1.079-2.695c.001-.032.014-.562.014-.836C19.526 4.632 16.565 0 12.41 0c-4.157 0-7.118 4.632-7.118 9.24 0 .274.013.804.014.836l-1.08 2.695a39.67 39.67 0 0 0-.802 2.264c-.535 2.184-.527 3.347.072 3.956.72.73 2.454.577 4.460-.613.384.737.835 1.41 1.328 1.996.675.802 1.33 1.293 1.925 1.545.595-.252 1.25-.743 1.925-1.545.493-.586.944-1.259 1.328-1.996 2.006 1.19 3.74 1.343 4.46.613.599-.609.607-1.772.072-3.956z"
                     />
                   </svg>
                   <svg
-                    v-else-if="email.provider === 'apple'"
+                    v-else-if="getProviderClass(email.provider) === 'apple'"
                     viewBox="0 0 24 24"
                     fill="currentColor"
                   >
@@ -225,10 +238,27 @@
                     <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
                   </svg>
                 </div>
-                <div class="email-address">{{ email.senderEmail }}</div>
+                <div class="receiver-email">{{ email.email_address }}</div>
               </div>
 
-              <div class="status-indicators">
+              <div class="priority-indicators">
+                <!-- 重要程度图标 -->
+                <div class="priority-icon importance" :class="email.importance">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                      d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"
+                    />
+                  </svg>
+                </div>
+                <!-- 紧急程度图标 -->
+                <div class="priority-icon urgency" :class="email.urgency">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path
+                      d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"
+                    />
+                  </svg>
+                </div>
+                <!-- 安全状态图标 -->
                 <div class="status-badge security" :class="email.status">
                   <svg
                     v-if="email.status === 'safe'"
@@ -253,19 +283,6 @@
                     <line x1="12" y1="16" x2="12.01" y2="16" />
                   </svg>
                 </div>
-                <div v-if="email.urgency === 'urgent'" class="status-badge urgency urgent">
-                  <svg
-                    class="status-icon"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                  >
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="12" y1="8" x2="12" y2="12" />
-                    <line x1="12" y1="16" x2="12.01" y2="16" />
-                  </svg>
-                </div>
               </div>
             </div>
 
@@ -273,23 +290,19 @@
               <div class="email-content">
                 <div class="sender-email">发件人：{{ email.senderEmail }}</div>
                 <h3 class="email-subject">{{ email.subject }}</h3>
-                <p
-                  class="email-preview"
-                  :class="{ 'has-tooltip': shouldShowPreviewTooltip(email.preview) }"
-                  :title="shouldShowPreviewTooltip(email.preview) ? email.preview : null"
-                >
-                  {{ email.preview }}
+                <p class="email-preview">
+                  {{ email.email_summary || email.preview }}
                 </p>
               </div>
 
               <div class="card-footer">
                 <div class="priority-tags">
                   <span class="priority-tag importance" :class="email.importance">
-                    {{ getImportanceText(email.importance) }}
+                    {{ email.importance }}
                   </span>
-                  <span v-if="email.urgency === 'urgent'" class="priority-tag urgency urgent"
-                    >紧急</span
-                  >
+                  <span class="priority-tag urgency" :class="email.urgency">
+                    {{ email.urgency }}
+                  </span>
                   <span class="priority-tag time">{{ email.time }}</span>
                 </div>
               </div>
@@ -303,12 +316,18 @@
         <div class="pagination">
           <div class="pagination-info">
             <span class="info-text"
-              >显示 <strong>{{ (currentPage - 1) * pageSize + 1 }}-{{ Math.min(currentPage * pageSize, filteredEmails.length) }}</strong> 条，共 <strong>{{ filteredEmails.length }}</strong> 条邮件</span
+              >显示
+              <strong
+                >{{ (currentPage - 1) * pageSize + 1 }}-{{
+                  Math.min(currentPage * pageSize, totalEmails)
+                }}</strong
+              >
+              条，共 <strong>{{ totalEmails }}</strong> 条邮件</span
             >
           </div>
           <div class="pagination-controls">
-            <button 
-              class="page-btn prev-btn" 
+            <button
+              class="page-btn prev-btn"
               :disabled="currentPage === 1"
               @click="changePage(currentPage - 1)"
             >
@@ -319,8 +338,8 @@
             </button>
 
             <div class="page-numbers">
-              <button 
-                v-for="page in visiblePages" 
+              <button
+                v-for="page in visiblePages"
                 :key="page"
                 class="page-number"
                 :class="{ active: page === currentPage }"
@@ -330,7 +349,7 @@
               </button>
             </div>
 
-            <button 
+            <button
               class="page-btn next-btn"
               :disabled="currentPage === totalPages"
               @click="changePage(currentPage + 1)"
@@ -341,26 +360,58 @@
               </svg>
             </button>
           </div>
-
-          <div class="page-size-selector">
-            <span class="selector-label">每页显示</span>
-            <select class="page-size-select" v-model="pageSize" @change="currentPage = 1">
-              <option :value="10">10 条</option>
-              <option :value="20">20 条</option>
-              <option :value="50">50 条</option>
-              <option :value="100">100 条</option>
-            </select>
-          </div>
         </div>
       </div>
     </div>
 
-    <!-- 邮件详情弹窗 -->
-    <Teleport to="body">
-      <div v-if="showEmailDetail" class="email-detail-modal" @click.self="closeEmailDetail">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h2 class="modal-title">邮件详情</h2>
+    <!-- 邮件详情侧边栏 -->
+    <div v-if="showEmailDetail" :class="{ 'sidebar-open': showEmailDetail }">
+      <div class="sidebar-overlay" @click="closeEmailDetail"></div>
+      <div class="email-detail-sidebar" :style="{ width: sidebarWidth + 'px' }">
+        <!-- 拖拽手柄 -->
+        <div class="resize-handle" @mousedown="startResize"></div>
+        <div class="sidebar-content">
+          <!-- 侧边栏头部 -->
+          <div class="sidebar-header">
+            <div class="header-info">
+              <h2 class="sidebar-title">邮件详情</h2>
+              <div class="email-meta" v-if="currentEmail">
+                <span class="email-time">{{ currentEmail.time }}</span>
+                <span class="email-status" :class="`status-${currentEmail.status}`">
+                  <svg
+                    v-if="currentEmail.status === 'safe'"
+                    class="status-icon"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path
+                      d="M12 2L13.09 8.26L22 9L13.09 9.74L12 16L10.91 9.74L2 9L10.91 8.26L12 2Z"
+                    />
+                  </svg>
+                  <svg
+                    v-else-if="currentEmail.status === 'phishing'"
+                    class="status-icon"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                  >
+                    <path
+                      d="M12 2L13.09 8.26L22 9L13.09 9.74L12 16L10.91 9.74L2 9L10.91 8.26L12 2Z"
+                    />
+                  </svg>
+                  <span class="status-text">
+                    {{
+                      currentEmail.status === 'safe'
+                        ? '安全'
+                        : currentEmail.status === 'suspicious'
+                          ? '可疑'
+                          : currentEmail.status === 'phishing'
+                            ? '钓鱼'
+                            : '未知'
+                    }}
+                  </span>
+                </span>
+              </div>
+            </div>
             <button class="close-btn" @click="closeEmailDetail">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -369,26 +420,27 @@
             </button>
           </div>
 
-          <div class="modal-body" v-if="currentEmail">
-            <!-- 邮件基本信息 -->
-            <div class="email-basic-info">
-              <div class="info-row">
-                <span class="info-label">发件人：</span>
-                <span class="info-value"
-                  >{{ currentEmail.sender }} ({{ currentEmail.senderEmail }})</span
-                >
+          <!-- 侧边栏主体内容 -->
+          <div class="sidebar-body" v-if="currentEmail">
+            <!-- 邮件头部信息卡片 -->
+            <div class="email-header-card">
+              <div class="email-subject">{{ currentEmail.subject }}</div>
+              <div class="email-meta">
+                <div class="meta-row">
+                  <div class="meta-avatar">
+                    {{ currentEmail.sender.charAt(0).toUpperCase() }}
+                  </div>
+                  <div class="meta-info">
+                    <div class="sender-name">{{ currentEmail.sender }}</div>
+                    <div class="sender-email">
+                      {{ currentEmail.senderEmail || currentEmail.sender }}
+                    </div>
+                  </div>
+                  <div class="email-time">{{ currentEmail.time }}</div>
+                </div>
               </div>
-              <div class="info-row">
-                <span class="info-label">邮件主题：</span>
-                <span class="info-value">{{ currentEmail.subject }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">时间：</span>
-                <span class="info-value">{{ currentEmail.time }}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">安全状态：</span>
-                <span class="info-value" :class="`status-${currentEmail.status}`">
+              <div class="email-attributes">
+                <span class="attribute-tag" :class="`status-${currentEmail.status}`">
                   {{
                     currentEmail.status === 'safe'
                       ? '安全'
@@ -399,478 +451,240 @@
                           : '未知'
                   }}
                 </span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">重要程度：</span>
-                <span class="info-value" :class="`importance-${currentEmail.importance}`">
-                  {{
-                    currentEmail.importance === 'high'
-                      ? '高'
-                      : currentEmail.importance === 'medium'
-                        ? '中'
-                        : '低'
-                  }}
+                <span
+                  class="attribute-tag"
+                  :class="`importance-${getImportanceText(currentEmail.importance).toLowerCase()}`"
+                >
+                  {{ getImportanceText(currentEmail.importance) }}
                 </span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">紧急程度：</span>
-                <span class="info-value" :class="`urgency-${currentEmail.urgency}`">
+                <span
+                  class="attribute-tag"
+                  :class="`urgency-${currentEmail.urgency === 'urgent' ? 'urgent' : 'normal'}`"
+                >
                   {{ currentEmail.urgency === 'urgent' ? '紧急' : '普通' }}
                 </span>
               </div>
             </div>
 
-            <!-- 邮件内容 -->
-            <div class="email-detail-content">
-              <h3 class="content-title">邮件内容：</h3>
-              <div class="content-body" v-html="currentEmail.content"></div>
+            <!-- 安全警告模块 -->
+            <div
+              v-if="currentEmail.status === 'phishing' || currentEmail.status === 'suspicious'"
+              class="security-alert"
+            >
+              <div class="alert-header">
+                <div class="alert-icon">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M13,14H11V10H13M13,18H11V16H13M1,21H23L12,2L1,21Z" />
+                  </svg>
+                </div>
+                <div class="alert-content">
+                  <div class="alert-title">安全警告</div>
+                  <div v-if="currentEmail.status === 'phishing'">
+                  <div v-if="renderedDetectionReason" v-html="renderedDetectionReason" class="detection-reason"></div>
+                  <p v-else>
+                    此邮件被识别为钓鱼邮件，可能包含恶意链接或附件。请勿点击任何链接或下载附件。
+                  </p>
+                </div>
+                  <p v-else-if="currentEmail.status === 'suspicious'">
+                    此邮件存在可疑特征，建议谨慎处理。
+                  </p>
+                  <ul v-if="currentEmail.status === 'phishing'">
+                    <li>不要点击邮件中的任何链接</li>
+                    <li>不要下载或打开附件</li>
+                    <li>不要回复此邮件</li>
+                    <li>如有疑问，请联系IT部门</li>
+                  </ul>
+                </div>
+              </div>
             </div>
 
-            <!-- 安全警告（仅钓鱼邮件显示） -->
-            <div v-if="currentEmail.status === 'phishing'" class="security-warning">
-              <div class="warning-header">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path
-                    d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-                  ></path>
-                  <line x1="12" y1="9" x2="12" y2="13"></line>
-                  <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                </svg>
-                <span>安全警告</span>
-              </div>
-              <p>该邮件已被识别为钓鱼邮件，请务必不要点击任何链接或下载附件！</p>
-              <ul>
-                <li>不要提供任何个人信息</li>
-                <li>不要输入密码或账户信息</li>
-                <li>建议直接删除此邮件</li>
-              </ul>
+            <!-- 邮件内容区域 -->
+            <div class="email-content-section">
+              <h3 class="content-title">邮件内容</h3>
+              <div class="content-body" v-html="currentEmail.content"></div>
             </div>
           </div>
 
-          <div class="modal-footer">
-            <button class="btn-secondary" @click="closeEmailDetail">关闭</button>
-            <button v-if="currentEmail?.status === 'phishing'" class="btn-danger">举报钓鱼</button>
-            <button v-else class="btn-primary">标记为已读</button>
+          <!-- 侧边栏底部操作区 -->
+          <div class="sidebar-footer">
+            <div class="action-buttons">
+              <button class="btn btn-secondary" @click="closeEmailDetail">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path
+                    d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z"
+                  />
+                </svg>
+                关闭
+              </button>
+              <button v-if="currentEmail?.status === 'phishing'" class="btn btn-danger">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M13,14H11V10H13M13,18H11V16H13M1,21H23L12,2L1,21Z" />
+                </svg>
+                举报钓鱼
+              </button>
+              <button v-else class="btn btn-primary">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z" />
+                </svg>
+                标记为已读
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </Teleport>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import websocketManager from '@/utils/websocket'
-import { showToast } from '@/utils/toast'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { getEmailList, getEmailStatistics, getEmailBindings, getEmailProviders, getEmailDetectionDetail } from '@/api/email'
+import { useToast } from '@/utils/toast'
+import { marked } from 'marked'
 
 defineOptions({
   name: 'EmailView',
 })
 
+// Toast工具
+const { showError } = useToast()
+
 // 响应式数据
 const cardSize = ref('normal') // compact, normal, large
 const viewMode = ref('grid') // grid, list
-const sortBy = ref('time') // time, importance, urgency, sender, subject, status
+const sortBy = ref('time') // time, sender, subject, status
 const sortOrder = ref('desc') // asc, desc
 
 // 筛选数据
-const filterEmail = ref('') // 新增具体邮箱筛选
+const filterEmail = ref('')
 const filterProvider = ref('')
 const filterStatus = ref('')
 const filterImportance = ref('')
 const filterUrgency = ref('')
 
-// 邮件详情弹窗状态
+// 筛选器选项数据
+const emailBindings = ref([])
+const emailProviders = ref([])
+
+// 邮件详情弹窗相关
 const showEmailDetail = ref(false)
 const currentEmail = ref(null)
+const currentEmailDetectionDetail = ref(null)
 
-// 邮件列表数据 - 23封真实邮件
-const allEmails = ref([
-  // 钓鱼邮件 (7封)
-  {
-    id: 1,
-    sender: 'PayPal Service',
-    senderEmail: 'noreply@paypal-security.net',
-    subject: '【紧急】PayPal账户已被限制',
-    preview: '由于安全原因，您的账户已被暂时限制，请立即验证身份。点击链接恢复账户访问权限，否则将永久停用您的账户。请在24小时内完成验证，超过时间将无法恢复。',
-    content: '亲爱的PayPal用户，<br><br>我们检测到您的账户存在异常活动，为了保护您的资金安全，我们已暂时限制您的账户。<br><br>请立即点击以下链接验证您的身份：<br><br><a href="#" style="color: red;">立即验证账户</a><br><br>如果您不在24小时内完成验证，您的账户将被永久停用。<br><br>PayPal安全团队',
-    time: '2025年9月20日',
-    status: 'phishing',
-    importance: 'high',
-    urgency: 'urgent',
-    provider: 'suspicious',
-    providerName: '可疑邮箱',
-  },
-  {
-    id: 2,
-    sender: 'Amazon Security',
-    senderEmail: 'security@amazon-verify.com',
-    subject: '您的Amazon账户存在异常登录',
-    preview: '我们检测到您的Amazon账户在未知设备上登录，为保护您的账户安全，请立即验证身份。如果不是您本人操作，请立即更改密码。',
-    content: '尊敬的Amazon用户，<br><br>我们检测到您的账户在以下设备上登录：<br><br>设备：iPhone 15 Pro<br>位置：北京，中国<br>时间：2024年12月30日 15:42<br><br>如果这不是您的操作，请立即点击以下链接保护您的账户：<br><br><a href="#">立即保护账户</a><br><br>Amazon安全团队',
-    time: '2025年9月10日',
-    status: 'phishing',
-    importance: 'high',
-    urgency: 'urgent',
-    provider: 'suspicious',
-    providerName: '可疑邮箱',
-  },
-  {
-    id: 3,
-    sender: 'Microsoft Rewards',
-    senderEmail: 'rewards@micr0soft.com',
-    subject: '恭喜！获得1000美元奖励',
-    preview: '您已被选中获得Microsoft Rewards特别奖励，请在24小时内领取。请点击以下链接完成身份验证并领取您的奖励。此奖励只对特定用户开放，请勿错过机会。',
-    content: '恭喜您！<br><br>您已被选中参与Microsoft Rewards特别活动，可获得价值1000美元的奖励！<br><br>请在24小时内点击以下链接领取：<br><br><a href="#">立即领取奖励</a><br><br>此活动仅限受邀用户，请勿错过这个难得的机会。<br><br>Microsoft团队',
-    time: '2025年9月22日',
-    status: 'phishing',
-    importance: 'medium',
-    urgency: 'urgent',
-    provider: 'suspicious',
-    providerName: '可疑邮箱',
-  },
-  {
-    id: 4,
-    sender: 'Apple Support',
-    senderEmail: 'support@apple-id-verify.com',
-    subject: 'Apple ID安全验证通知',
-    preview: '您的Apple ID需要重新验证以确保账户安全。请在48小时内完成验证，否则您的账户将被暂停使用。点击链接立即验证您的身份信息。',
-    content: '亲爱的Apple用户，<br><br>我们需要验证您的Apple ID以确保账户安全：<br><br>账户：your***@email.com<br>验证截止时间：2025年1月1日<br><br>请点击以下链接完成验证：<br><br><a href="#">验证Apple ID</a><br><br>如果您不完成验证，您的账户将被暂停。<br><br>Apple支持团队',
-    time: '2025年9月18日',
-    status: 'phishing',
-    importance: 'high',
-    urgency: 'urgent',
-    provider: 'suspicious',
-    providerName: '可疑邮箱',
-  },
-  {
-    id: 5,
-    sender: '中国银行',
-    senderEmail: 'service@boc-online.cn',
-    subject: '网银安全升级通知',
-    preview: '为提升网银安全性，我们将对您的账户进行安全升级。请在3天内完成升级操作，否则您的网银功能将被限制。点击链接立即升级。',
-    content: '尊敬的客户，<br><br>为了提升您的网银安全性，我们需要对您的账户进行升级：<br><br>账户：****1234<br>升级截止时间：2025年1月2日<br><br>请点击以下链接完成升级：<br><br><a href="#">立即升级</a><br><br>如不及时升级，您的网银功能将受到限制。<br><br>中国银行客服中心',
-    time: '2025年9月15日',
-    status: 'phishing',
-    importance: 'high',
-    urgency: 'urgent',
-    provider: 'suspicious',
-    providerName: '可疑邮箱',
-  },
-  {
-    id: 6,
-    sender: 'Netflix Support',
-    senderEmail: 'billing@netflix-update.com',
-    subject: '您的Netflix订阅即将暂停',
-    preview: '由于付款问题，您的Netflix订阅将在24小时内暂停。请立即更新您的付款信息以继续享受服务。点击链接更新付款方式。',
-    content: '亲爱的Netflix用户，<br><br>您的订阅存在付款问题：<br><br>订阅计划：高级套餐<br>到期时间：2024年12月31日<br><br>请立即更新您的付款信息：<br><br><a href="#">更新付款信息</a><br><br>如果不及时更新，您的服务将被暂停。<br><br>Netflix客服团队',
-    time: '2025年9月12日',
-    status: 'phishing',
-    importance: 'medium',
-    urgency: 'urgent',
-    provider: 'suspicious',
-    providerName: '可疑邮箱',
-  },
-  {
-    id: 7,
-    sender: 'WeChat Pay',
-    senderEmail: 'security@wechatpay-verify.com',
-    subject: '微信支付安全验证',
-    preview: '检测到您的微信支付账户存在风险，请立即进行安全验证。如果不是您本人操作，请立即冻结账户并联系客服。验证链接24小时内有效。',
-    content: '尊敬的用户，<br><br>我们检测到您的微信支付账户存在以下风险：<br><br>异常交易：￥2,580.00<br>风险等级：高<br>检测时间：2024年12月27日 20:15<br><br>请立即进行安全验证：<br><br><a href="#">立即验证</a><br><br>微信支付安全中心',
-    time: '2025年9月19日',
-    status: 'phishing',
-    importance: 'high',
-    urgency: 'urgent',
-    provider: 'suspicious',
-    providerName: '可疑邮箱',
-  },
-  
-  // 可疑邮件 (5封)
-  {
-    id: 8,
-    sender: 'Lucky Winner',
-    senderEmail: 'winner@lottery-international.org',
-    subject: '恭喜您中奖了！',
-    preview: '恭喜您在国际彩票中获得500万美元大奖！这是一个千载难逢的机会，请尽快联系我们领取奖金。我们需要验证您的身份信息。',
-    content: '恭喜您！<br><br>您在国际彩票抽奖中获得了500万美元大奖！<br><br>中奖号码：LK-2024-8888<br>奖金金额：$5,000,000<br><br>请联系我们的客服领取奖金：<br>邮箱：claim@lottery-international.org<br>电话：+1-555-0123<br><br>国际彩票组织',
-    time: '2025年9月8日',
-    status: 'suspicious',
-    importance: 'low',
-    urgency: 'normal',
-    provider: 'suspicious',
-    providerName: '可疑邮箱',
-  },
-  {
-    id: 9,
-    sender: 'Investment Opportunity',
-    senderEmail: 'invest@crypto-fortune.biz',
-    subject: '独家投资机会 - 加密货币',
-    preview: '独家加密货币投资机会，保证30天内获得300%回报。限时优惠，仅对前100名投资者开放。不要错过这个改变人生的机会。',
-    content: '亲爱的投资者，<br><br>我们为您提供独家加密货币投资机会：<br><br>投资项目：CryptoFortune<br>预期回报：300%（30天内）<br>最低投资：$1,000<br><br>立即投资：crypto-fortune.biz<br><br>机会有限，先到先得！<br><br>CryptoFortune团队',
-    time: '2025年9月14日',
-    status: 'suspicious',
-    importance: 'medium',
-    urgency: 'urgent',
-    provider: 'suspicious',
-    providerName: '可疑邮箱',
-  },
-  {
-    id: 10,
-    sender: 'Health Supplement',
-    senderEmail: 'sales@miracle-health.net',
-    subject: '神奇减肥药 - 30天瘦20斤',
-    preview: '革命性减肥产品，无需运动和节食，30天内保证减重20斤。已有10万人成功验证，现在购买享受50%折扣。',
-    content: '亲爱的朋友，<br><br>介绍革命性减肥产品MiracleThin：<br><br>效果：30天减重20斤<br>成分：100%天然草本<br>副作用：无<br><br>限时优惠价：￥299（原价￥598）<br><br>立即订购：miracle-health.net<br><br>健康生活从今天开始！',
-    time: '2025年9月11日',
-    status: 'suspicious',
-    importance: 'low',
-    urgency: 'normal',
-    provider: 'suspicious',
-    providerName: '可疑邮箱',
-  },
-  {
-    id: 11,
-    sender: 'Dating Service',
-    senderEmail: 'match@perfect-love.com',
-    subject: '您有新的约会邀请',
-    preview: '附近有3位美女想要与您约会！她们都对您的资料很感兴趣。立即查看她们的照片和联系方式，开始您的浪漫之旅。',
-    content: '您好！<br><br>有3位美女对您感兴趣：<br><br>1. 小雅，25岁，模特<br>2. 小美，28岁，白领<br>3. 小丽，26岁，教师<br><br>查看详细资料：perfect-love.com<br><br>立即开始聊天！<br><br>完美爱情交友网',
-    time: '2025年9月6日',
-    status: 'suspicious',
-    importance: 'low',
-    urgency: 'normal',
-    provider: 'suspicious',
-    providerName: '可疑邮箱',
-  },
-  {
-    id: 12,
-    sender: 'Work From Home',
-    senderEmail: 'jobs@easy-money.biz',
-    subject: '在家工作 - 日赚1000元',
-    preview: '简单的在家工作机会，每天只需工作2小时，即可赚取1000元。无需经验，无需投资，立即开始赚钱。已有5000人成功加入。',
-    content: '亲爱的朋友，<br><br>在家工作机会：<br><br>工作时间：每天2小时<br>收入：日赚1000元<br>要求：无<br>投资：0元<br><br>立即申请：easy-money.biz<br><br>改变您的生活，从今天开始！<br><br>轻松赚钱网',
-    time: '2025年9月16日',
-    status: 'suspicious',
-    importance: 'medium',
-    urgency: 'normal',
-    provider: 'suspicious',
-    providerName: '可疑邮箱',
-  },
-  
-  // 安全邮件 (11封)
-  {
-    id: 13,
-    sender: 'Google Security',
-    senderEmail: 'security@google.com',
-    subject: 'Google账户安全提醒',
-    preview: '检测到新的登录活动，如果是您本人操作请忽略此邮件，如果不是请立即更改密码并启用两步验证保护您的账户安全。我们建议您定期检查账户活动并保持密码的复杂性。',
-    content: '亲爱的用户，<br><br>我们检测到您的Google账户在以下时间和地点有新的登录活动：<br><br>时间：2024年12月30日 14:32<br>地点：上海，中国<br>设备：Windows 11 - Chrome浏览器<br><br>如果这是您的操作，您可以忽略此邮件。如果不是，请立即采取以下措施：<br><br>1. 立即更改您的密码<br>2. 启用两步验证<br>3. 检查您的账户活动<br><br>谢谢，<br>Google安全团队',
-    time: '2025年9月3日',
-    status: 'safe',
-    importance: 'medium',
-    urgency: 'normal',
-    provider: 'gmail',
-    providerName: 'Gmail邮箱',
-  },
-  {
-    id: 14,
-    sender: '腾讯云',
-    senderEmail: 'service@qcloud.com',
-    subject: '云服务器即将到期提醒',
-    preview: '您购买的云服务器将于7天后到期，请及时续费以免影响业务运行。我们为您提供了多种续费方案，请登录控制台查看详情。',
-    content: '尊敬的腾讯云用户：<br><br>您好！您购买的云服务器实例即将到期：<br><br>实例ID：cvm-abc123<br>到期时间：2025年1月7日<br>配置：2核4G CentOS 7.6<br><br>为避免业务中断，请及时续费。我们为您推荐以下续费方案：<br><br>1. 月付：￥168/月<br>2. 年付：￥1680/年（享8.3折优惠）<br><br>腾讯云团队',
-    time: '2025年9月21日',
-    status: 'safe',
-    importance: 'high',
-    urgency: 'normal',
-    provider: 'qq',
-    providerName: 'QQ邮箱',
-  },
-  {
-    id: 15,
-    sender: 'GitHub',
-    senderEmail: 'noreply@github.com',
-    subject: '新的Pull Request',
-    preview: '用户 john-doe 向您的仓库 awesome-project 提交了一个新的PR，请及时review。该PR包含了新功能的实现和相关测试用例。',
-    content: '您好！<br><br>用户 john-doe 向您的仓库提交了一个新的Pull Request：<br><br>仓库：awesome-project<br>分支：feature/user-authentication<br>描述：添加用户认证功能<br><br>更改内容：<br>- 添加登录/注册页面<br>- 实现JWT认证<br>- 添加用户权限管理<br>- 更新相关测试<br><br>请及时进行代码审查。<br><br>GitHub团队',
-    time: '2025年9月17日',
-    status: 'safe',
-    importance: 'low',
-    urgency: 'normal',
-    provider: 'gmail',
-    providerName: 'Gmail邮箱',
-  },
-  {
-    id: 16,
-    sender: 'Apple',
-    senderEmail: 'no_reply@apple.com',
-    subject: 'App Store购买确认',
-    preview: '您已成功购买 Adobe Photoshop，感谢您的使用。购买金额：￥148.00，订单号：MX12345678。如有问题请联系客服。',
-    content: '感谢您的购买！<br><br>购买详情：<br><br>应用名称：Adobe Photoshop<br>购买时间：2024年12月16日<br>金额：￥148.00<br>订单号：MX12345678<br>付款方式：******1234<br><br>您可以在所有已登录相同Apple ID的设备上下载和使用此应用。<br><br>如有疑问，请联系Apple客服。<br><br>Apple团队',
-    time: '2025年9月5日',
-    status: 'safe',
-    importance: 'low',
-    urgency: 'normal',
-    provider: 'apple',
-    providerName: 'Apple邮箱',
-  },
-  {
-    id: 17,
-    sender: '阿里云',
-    senderEmail: 'notice@aliyun.com',
-    subject: 'ECS实例监控报告',
-    preview: '您的ECS实例运行正常，本周CPU使用率平均为45%，内存使用率为62%。建议您关注磁盘使用情况，当前使用率为78%。',
-    content: '尊敬的阿里云用户，<br><br>您的ECS实例本周运行报告：<br><br>实例ID：i-bp1234567890<br>CPU使用率：45%（正常）<br>内存使用率：62%（正常）<br>磁盘使用率：78%（建议清理）<br>网络流量：正常<br><br>建议定期清理日志文件以释放磁盘空间。<br><br>阿里云监控团队',
-    time: '2025年9月13日',
-    status: 'safe',
-    importance: 'medium',
-    urgency: 'normal',
-    provider: 'qq',
-    providerName: 'QQ邮箱',
-  },
-  {
-    id: 18,
-    sender: 'Microsoft 365',
-    senderEmail: 'admin@office365.com',
-    subject: 'Office 365订阅续费通知',
-    preview: '您的Office 365订阅将于2025年1月15日到期。为确保服务不中断，请及时续费。我们为您准备了多种续费方案。',
-    content: '尊敬的Office 365用户，<br><br>您的订阅信息：<br><br>订阅类型：Office 365商业版<br>到期日期：2025年1月15日<br>用户数量：5个<br><br>续费方案：<br>1. 年付：￥6,588/年<br>2. 月付：￥588/月<br><br>请登录管理中心进行续费操作。<br><br>Microsoft 365团队',
-    time: '2025年9月28日',
-    status: 'safe',
-    importance: 'high',
-    urgency: 'normal',
-    provider: 'outlook',
-    providerName: 'Outlook邮箱',
-  },
-  {
-    id: 19,
-    sender: 'Netflix',
-    senderEmail: 'info@netflix.com',
-    subject: '新剧推荐：《黑镜》第六季',
-    preview: '《黑镜》第六季现已上线！探索科技与人性的边界，体验前所未有的视觉盛宴。立即观看这部备受期待的科幻剧集。',
-    content: '亲爱的Netflix用户，<br><br>《黑镜》第六季现已上线！<br><br>剧集信息：<br>集数：6集<br>类型：科幻/惊悚<br>评分：9.2/10<br><br>特色剧集：<br>- 《琼·伊斯·阿福》<br>- 《洛奇恐怖秀》<br>- 《超越海洋》<br><br>立即观看，享受视觉盛宴！<br><br>Netflix内容团队',
-    time: '2025年9月2日',
-    status: 'safe',
-    importance: 'low',
-    urgency: 'normal',
-    provider: 'gmail',
-    providerName: 'Gmail邮箱',
-  },
-  {
-    id: 20,
-    sender: '京东商城',
-    senderEmail: 'service@jd.com',
-    subject: '您的订单已发货',
-    preview: '您购买的iPhone 15 Pro已发货，预计明天送达。快递单号：JD1234567890，您可以通过京东APP实时跟踪物流信息。',
-    content: '亲爱的京东用户，<br><br>您的订单已发货：<br><br>订单号：JD2024123456789<br>商品：iPhone 15 Pro 256GB 深空黑色<br>数量：1台<br>快递公司：京东快递<br>快递单号：JD1234567890<br>预计送达：2024年12月31日<br><br>您可以在京东APP中跟踪物流信息。<br><br>京东客服团队',
-    time: '2025年9月26日',
-    status: 'safe',
-    importance: 'medium',
-    urgency: 'normal',
-    provider: 'qq',
-    providerName: 'QQ邮箱',
-  },
-  {
-    id: 21,
-    sender: '招商银行',
-    senderEmail: 'service@cmbchina.com',
-    subject: '信用卡账单提醒',
-    preview: '您的招商银行信用卡12月账单已生成，本期应还金额￥3,256.78，最后还款日为2025年1月18日。请及时还款以免产生利息。',
-    content: '尊敬的招商银行信用卡客户，<br><br>您的12月账单详情：<br><br>卡号：****1234<br>账单日：2024年12月25日<br>本期应还：￥3,256.78<br>最低还款：￥325.68<br>最后还款日：2025年1月18日<br><br>还款方式：<br>1. 手机银行APP<br>2. 网上银行<br>3. 自动还款<br><br>招商银行信用卡中心',
-    time: '2025年9月25日',
-    status: 'safe',
-    importance: 'high',
-    urgency: 'normal',
-    provider: 'qq',
-    providerName: 'QQ邮箱',
-  },
-  {
-    id: 22,
-    sender: 'Steam',
-    senderEmail: 'noreply@steampowered.com',
-    subject: 'Steam冬季特卖开始了！',
-    preview: 'Steam冬季特卖现已开始，数千款游戏最高享受90%折扣！包括《赛博朋克2077》、《巫师3》等热门游戏。特卖持续到1月5日。',
-    content: '亲爱的Steam用户，<br><br>Steam冬季特卖现已开始！<br><br>特色优惠：<br>- 《赛博朋克2077》：75%折扣<br>- 《巫师3：狂猎》：80%折扣<br>- 《艾尔登法环》：30%折扣<br>- 《博德之门3》：20%折扣<br><br>特卖时间：2024年12月22日 - 2025年1月5日<br><br>立即前往Steam商店选购！<br><br>Steam团队',
-    time: '2025年9月7日',
-    status: 'safe',
-    importance: 'low',
-    urgency: 'normal',
-    provider: 'gmail',
-    providerName: 'Gmail邮箱',
-  },
-  {
-    id: 23,
-    sender: '滴滴出行',
-    senderEmail: 'service@didiglobal.com',
-    subject: '行程结束，请为司机评分',
-    preview: '感谢您使用滴滴出行！您的行程已结束，总费用￥28.5。请为司机师傅评分，您的反馈将帮助我们提供更好的服务。',
-    content: '亲爱的乘客，<br><br>您的行程已结束：<br><br>行程时间：2024年12月14日 18:30-18:45<br>起点：北京市朝阳区国贸<br>终点：北京市朝阳区三里屯<br>里程：5.2公里<br>费用：￥28.5<br>司机：张师傅（4.9分）<br><br>请为本次服务评分，您的反馈很重要！<br><br>滴滴出行',
-    time: '2025年9月4日',
-    status: 'safe',
-    importance: 'low',
-    urgency: 'normal',
-    provider: 'qq',
-    providerName: 'QQ邮箱',
-  },
-])
+// 渲染Markdown格式的检测理由
+const renderedDetectionReason = computed(() => {
+  if (currentEmailDetectionDetail.value && currentEmailDetectionDetail.value.final_reason) {
+    return marked(currentEmailDetectionDetail.value.final_reason)
+  }
+  return null
+})
+
+// 侧边栏拖拽调整宽度
+const sidebarWidth = ref(500)
+const isResizing = ref(false)
+const startX = ref(0)
+const startWidth = ref(0)
+
+// 加载状态
+const loading = ref(false)
+const statsLoading = ref(false)
+
+// 邮件列表数据
+const allEmails = ref([])
 
 // 分页相关状态
 const currentPage = ref(1)
-const pageSize = ref(10)
-const totalEmails = computed(() => allEmails.value.length)
+const pageSize = ref(8) // 固定每页8封邮件
+const totalEmails = ref(0)
 const totalPages = computed(() => Math.ceil(totalEmails.value / pageSize.value))
 
-// 筛选后的邮件列表
-const filteredEmails = computed(() => {
-  let filtered = allEmails.value
-  
-  // 按状态筛选
-  if (filterStatus.value) {
-    filtered = filtered.filter(email => email.status === filterStatus.value)
-  }
-  
-  // 按重要程度筛选
-  if (filterImportance.value) {
-    filtered = filtered.filter(email => email.importance === filterImportance.value)
-  }
-  
-  // 按紧急程度筛选
-  if (filterUrgency.value) {
-    filtered = filtered.filter(email => email.urgency === filterUrgency.value)
-  }
-  
-  // 按邮箱提供商筛选
-  if (filterProvider.value) {
-    filtered = filtered.filter(email => email.provider === filterProvider.value)
-  }
-  
-  return filtered
-})
-
-// 当前页显示的邮件列表
-const emailList = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return filteredEmails.value.slice(start, end)
-})
-
 // 统计数据
-const emailStats = computed(() => {
-  const stats = {
-    total: allEmails.value.length,
-    phishing: 0,
-    suspicious: 0,
-    safe: 0
+const emailStats = ref({
+  total: 0,
+  phishing: 0,
+  safe: 0,
+})
+
+// 获取邮件统计数据
+const fetchEmailStats = async () => {
+  try {
+    statsLoading.value = true
+    const response = await getEmailStatistics()
+    if (response.success) {
+      emailStats.value = response.data
+    } else {
+      showError(response.message || '获取统计数据失败')
+    }
+  } catch (error) {
+    console.error('获取统计数据失败:', error)
+    showError('获取统计数据失败')
+  } finally {
+    statsLoading.value = false
   }
-  
-  allEmails.value.forEach(email => {
-    if (email.status === 'phishing') stats.phishing++
-    else if (email.status === 'suspicious') stats.suspicious++
-    else if (email.status === 'safe') stats.safe++
-  })
-  
-  return stats
+}
+
+// 获取邮箱绑定列表
+const fetchEmailBindings = async () => {
+  try {
+    const response = await getEmailBindings()
+    if (response.success) {
+      emailBindings.value = response.data.bindings || []
+    } else {
+      console.error('获取邮箱绑定列表失败:', response.message)
+    }
+  } catch (error) {
+    console.error('获取邮箱绑定列表失败:', error)
+  }
+}
+
+// 获取邮箱厂商列表
+const fetchEmailProviders = async () => {
+  try {
+    const response = await getEmailProviders()
+    if (response.success) {
+      emailProviders.value = response.data.providers || []
+    } else {
+      console.error('获取邮箱厂商列表失败:', response.message)
+    }
+  } catch (error) {
+    console.error('获取邮箱厂商列表失败:', error)
+  }
+}
+
+// 获取邮件列表数据
+const fetchEmailList = async () => {
+  try {
+    loading.value = true
+    const params = {
+      page: currentPage.value,
+      page_size: pageSize.value,
+    }
+
+    // 添加筛选参数
+    if (filterStatus.value) params.status = filterStatus.value
+    if (filterProvider.value) params.provider = filterProvider.value
+    if (filterEmail.value) params.email = filterEmail.value
+    if (filterImportance.value) params.importance = filterImportance.value
+    if (filterUrgency.value) params.urgency = filterUrgency.value
+
+    const response = await getEmailList(params)
+    if (response.success) {
+      allEmails.value = response.data.emails
+      totalEmails.value = response.data.total
+    } else {
+      showError(response.message || '获取邮件列表失败')
+    }
+  } catch (error) {
+    console.error('获取邮件列表失败:', error)
+    showError('获取邮件列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 当前页显示的邮件列表（现在直接使用allEmails，因为分页在后端完成）
+const emailList = computed(() => {
+  return allEmails.value
 })
 
 // 更新卡片大小
@@ -897,10 +711,28 @@ const handleSort = () => {
 }
 
 // 点击邮件查看详情
-const viewEmailDetail = (emailId) => {
+const viewEmailDetail = async (emailId) => {
   currentEmail.value = emailList.value.find((email) => email.id === emailId)
   if (currentEmail.value) {
     showEmailDetail.value = true
+
+    // 如果是钓鱼邮件，获取检测详情
+    if (currentEmail.value.status === 'phishing') {
+      try {
+        const response = await getEmailDetectionDetail(emailId)
+        if (response.success) {
+          currentEmailDetectionDetail.value = response.data
+        } else {
+          console.error('获取检测详情失败:', response.message)
+          currentEmailDetectionDetail.value = null
+        }
+      } catch (error) {
+        console.error('获取检测详情出错:', error)
+        currentEmailDetectionDetail.value = null
+      }
+    } else {
+      currentEmailDetectionDetail.value = null
+    }
   } else {
     console.log('邮件数据不存在:', emailId)
   }
@@ -910,38 +742,107 @@ const viewEmailDetail = (emailId) => {
 const closeEmailDetail = () => {
   showEmailDetail.value = false
   currentEmail.value = null
+  currentEmailDetectionDetail.value = null
 }
 
-// 辅助方法：获取重要程度显示文本
+// 辅助方法：获取厂商图标类名
+const getProviderClass = (providerName) => {
+  if (!providerName) return 'suspicious'
+  const name = providerName.toLowerCase()
+  if (name.includes('gmail')) return 'gmail'
+  if (name.includes('outlook') || name.includes('hotmail') || name.includes('live'))
+    return 'outlook'
+  if (name.includes('qq')) return 'qq'
+  if (name.includes('apple') || name.includes('icloud')) return 'apple'
+  if (name.includes('163') || name.includes('126') || name.includes('yeah')) return 'netease'
+  return 'suspicious'
+}
+
+// 辅助方法：获取重要程度文本
 const getImportanceText = (importance) => {
-  const textMap = {
-    high: '高',
-    medium: '中',
-    low: '低',
+  switch (importance) {
+    case 'high':
+    case '高':
+      return '高'
+    case 'medium':
+    case '中':
+      return '中'
+    case 'low':
+    case '低':
+      return '低'
+    default:
+      return '低'
   }
-  return textMap[importance] || '-'
 }
 
-// 辅助方法：判断是否需要显示预览悬浮提示
-const shouldShowPreviewTooltip = (previewText) => {
-  if (!previewText) return false
-  // 如果文本长度超过120个字符，则显示悬浮提示
-  return previewText.length > 120
+// 侧边栏拖拽调整宽度相关方法
+const startResize = (e) => {
+  isResizing.value = true
+  startX.value = e.clientX
+  startWidth.value = sidebarWidth.value
+
+  document.addEventListener('mousemove', handleResize)
+  document.addEventListener('mouseup', stopResize)
+  document.body.style.cursor = 'ew-resize'
+  document.body.style.userSelect = 'none'
+}
+
+const handleResize = (e) => {
+  if (!isResizing.value) return
+
+  const deltaX = startX.value - e.clientX
+  const newWidth = startWidth.value + deltaX
+
+  // 限制最小和最大宽度
+  const minWidth = 300
+  const maxWidth = window.innerWidth * 0.8
+
+  if (newWidth >= minWidth && newWidth <= maxWidth) {
+    sidebarWidth.value = newWidth
+  }
+}
+
+const stopResize = () => {
+  isResizing.value = false
+  document.removeEventListener('mousemove', handleResize)
+  document.removeEventListener('mouseup', stopResize)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
 }
 
 // 分页相关方法
 const changePage = (page) => {
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
+    fetchEmailList()
   }
 }
+
+// 筛选变化时重新获取数据
+const handleFilterChange = () => {
+  currentPage.value = 1
+  fetchEmailList()
+}
+
+// 监听筛选条件变化
+watch([filterStatus, filterProvider, filterEmail, filterImportance, filterUrgency], () => {
+  handleFilterChange()
+})
+
+// 组件挂载时获取数据
+onMounted(() => {
+  fetchEmailStats()
+  fetchEmailBindings()
+  fetchEmailProviders()
+  fetchEmailList()
+})
 
 // 计算可见页码
 const visiblePages = computed(() => {
   const pages = []
   const total = totalPages.value
   const current = currentPage.value
-  
+
   if (total <= 7) {
     // 如果总页数小于等于7，显示所有页码
     for (let i = 1; i <= total; i++) {
@@ -974,54 +875,23 @@ const visiblePages = computed(() => {
       pages.push(total)
     }
   }
-  
+
   return pages
 })
 
-// 每页显示数量变化时重置到第一页
-// const onPageSizeChange = () => {
-//   currentPage.value = 1
-// }
-
-// WebSocket消息处理器
-const handleNewEmailsMessage = (data) => {
-  console.log('EmailView收到新邮件通知:', data)
-  
-  // 显示toast提示
-  if (data && data.email_count > 0) {
-    showToast({
-      message: data.message || `收到 ${data.email_count} 封新邮件`,
-      type: 'info',
-      duration: 3000
-    })
-  }
-  
-  // 这里可以添加刷新邮件列表的逻辑
-  // 例如：refreshEmailList()
-}
-
-// 组件挂载时注册消息处理器
+// 组件挂载时的初始化
 onMounted(() => {
-  console.log('EmailView组件已挂载，注册新邮件消息处理器')
-  
-  // 注册新邮件消息处理器
-  websocketManager.onMessage('new_emails', handleNewEmailsMessage)
-  
-  // 确保WebSocket已连接（如果未连接则连接）
-  if (!websocketManager.getConnectionStatus()) {
-    console.log('WebSocket未连接，正在连接...')
-    websocketManager.connect()
-  } else {
-    console.log('WebSocket已连接，直接注册消息处理器')
-  }
+  console.log('EmailView组件已挂载')
 })
 
-// 组件卸载时清理WebSocket
+// 组件卸载时的清理
 onUnmounted(() => {
-  console.log('EmailView组件即将卸载，清理WebSocket')
-  
-  // 移除消息处理器
-  websocketManager.offMessage('new_emails', handleNewEmailsMessage)
+  console.log('EmailView组件即将卸载')
+  // 清理拖拽事件监听器
+  document.removeEventListener('mousemove', handleResize)
+  document.removeEventListener('mouseup', stopResize)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
 })
 </script>
 
@@ -1304,66 +1174,119 @@ onUnmounted(() => {
   }
 }
 
-/* 邮件详情弹窗样式 */
-.email-detail-modal {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  right: 0 !important;
-  bottom: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  background: rgba(0, 0, 0, 0.5) !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  z-index: 999999 !important;
-  margin: 0 !important;
-  padding: 20px !important;
-  box-sizing: border-box !important;
-  pointer-events: auto !important;
+/* 邮件详情侧边栏样式 */
+.sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 999;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.modal-content {
-  background: white !important;
-  border-radius: 12px;
-  max-width: 800px;
-  width: 100%;
-  max-height: 90vh;
-  overflow: hidden;
+.sidebar-open .sidebar-overlay {
+  opacity: 1;
+  visibility: visible;
+}
+
+.email-detail-sidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  background: white;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  transform: translateX(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
-  box-shadow:
-    0 20px 25px -5px rgba(0, 0, 0, 0.1),
-    0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  position: relative;
-  z-index: 1000000 !important;
-  pointer-events: auto !important;
+  border-left: 1px solid #e5e7eb;
 }
 
-.modal-header {
+/* 拖拽手柄样式 */
+.resize-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 4px;
+  height: 100%;
+  background: transparent;
+  cursor: ew-resize;
+  z-index: 1001;
+  transition: background-color 0.2s ease;
+}
+
+.resize-handle:hover {
+  background: #3b82f6;
+}
+
+.resize-handle::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: 0;
+  width: 8px;
+  height: 100%;
+  background: transparent;
+}
+
+.sidebar-open .email-detail-sidebar {
+  transform: translateX(0);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .email-detail-sidebar {
+    width: 100vw !important;
+  }
+
+  .resize-handle {
+    display: none;
+  }
+}
+
+@media (max-width: 1024px) {
+  .email-detail-sidebar {
+    min-width: 350px;
+  }
+}
+
+.sidebar-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: white;
+}
+
+.sidebar-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 20px 24px;
   border-bottom: 1px solid #e5e7eb;
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  min-height: 70px;
 }
 
-.modal-title {
-  font-size: 20px;
+.sidebar-title {
+  font-size: 18px;
   font-weight: 700;
   color: #1a1a1a;
   margin: 0;
 }
 
 .close-btn {
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   border: none;
   background: transparent;
   cursor: pointer;
-  border-radius: 6px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1374,24 +1297,141 @@ onUnmounted(() => {
 .close-btn:hover {
   background: #f3f4f6;
   color: #374151;
+  transform: scale(1.05);
 }
 
 .close-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
 }
 
-.modal-body {
+.sidebar-body {
   flex: 1;
   overflow-y: auto;
-  padding: 24px;
+  padding: 0;
+  background: #fafbfc;
 }
 
-.email-basic-info {
-  background: #f8fafc;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 20px;
+.email-header-card {
+  background: white;
+  margin: 0;
+  padding: 24px;
+  border-bottom: 1px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.email-subject {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 16px 0;
+  line-height: 1.3;
+}
+
+.email-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.meta-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.meta-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.meta-info {
+  flex: 1;
+}
+
+.sender-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.sender-email {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 2px 0 0 0;
+}
+
+.email-time {
+  font-size: 14px;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.email-attributes {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.attribute-tag {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.attribute-tag.status-safe {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #065f46;
+}
+
+.attribute-tag.status-suspicious {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #92400e;
+}
+
+.attribute-tag.status-phishing {
+  background: linear-gradient(135deg, #fee2e2, #fca5a5);
+  color: #991b1b;
+}
+
+.attribute-tag.importance-high {
+  background: linear-gradient(135deg, #fee2e2, #fca5a5);
+  color: #991b1b;
+}
+
+.attribute-tag.importance-medium {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #92400e;
+}
+
+.attribute-tag.importance-low {
+  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+  color: #6b7280;
+}
+
+.attribute-tag.urgency-urgent {
+  background: linear-gradient(135deg, #ddd6fe, #c4b5fd);
+  color: #6b21a8;
+}
+
+.attribute-tag.urgency-normal {
+  background: linear-gradient(135deg, #e0f2fe, #b3e5fc);
+  color: #0277bd;
 }
 
 .info-row {
@@ -1456,72 +1496,458 @@ onUnmounted(() => {
   font-weight: 600;
 }
 
-.email-detail-content {
-  margin-bottom: 20px;
+.email-content-section {
+  background: white;
+  margin: 0;
+  padding: 24px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .content-title {
   font-size: 16px;
   font-weight: 600;
   color: #1a1a1a;
-  margin: 0 0 12px 0;
-}
-
-.content-body {
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 16px;
-  line-height: 1.6;
-  color: #374151;
-}
-
-.security-warning {
-  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-  border: 1px solid #fca5a5;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 20px;
-}
-
-.warning-header {
+  margin: 0 0 16px 0;
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 12px;
+}
+
+.content-title::before {
+  content: '';
+  width: 4px;
+  height: 16px;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  border-radius: 2px;
+}
+
+.content-body {
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  line-height: 1.7;
+  color: #374151;
+  font-size: 15px;
+  word-wrap: break-word;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* HTML内容格式化样式 */
+.content-body p {
+  margin: 0 0 16px 0;
+  line-height: 1.7;
+}
+
+.content-body p:last-child {
+  margin-bottom: 0;
+}
+
+.content-body h1,
+.content-body h2,
+.content-body h3,
+.content-body h4,
+.content-body h5,
+.content-body h6 {
+  margin: 24px 0 16px 0;
+  font-weight: 600;
+  color: #1f2937;
+  line-height: 1.4;
+}
+
+.content-body h1:first-child,
+.content-body h2:first-child,
+.content-body h3:first-child,
+.content-body h4:first-child,
+.content-body h5:first-child,
+.content-body h6:first-child {
+  margin-top: 0;
+}
+
+.content-body h1 {
+  font-size: 24px;
+}
+.content-body h2 {
+  font-size: 20px;
+}
+.content-body h3 {
+  font-size: 18px;
+}
+.content-body h4 {
+  font-size: 16px;
+}
+.content-body h5 {
+  font-size: 15px;
+}
+.content-body h6 {
+  font-size: 14px;
+}
+
+.content-body a {
+  color: #3b82f6;
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.content-body a:hover {
+  color: #1d4ed8;
+  border-bottom-color: #3b82f6;
+}
+
+.content-body ul,
+.content-body ol {
+  margin: 16px 0;
+  padding-left: 24px;
+}
+
+.content-body li {
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+
+.content-body blockquote {
+  margin: 20px 0;
+  padding: 16px 20px;
+  background: #f1f5f9;
+  border-left: 4px solid #3b82f6;
+  border-radius: 0 8px 8px 0;
+  font-style: italic;
+  color: #475569;
+}
+
+.content-body code {
+  background: #f1f5f9;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  color: #dc2626;
+}
+
+.content-body pre {
+  background: #1f2937;
+  color: #f9fafb;
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 16px 0;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.content-body pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+}
+
+.content-body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 16px 0;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.content-body th,
+.content-body td {
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.content-body th {
+  background: #f8fafc;
+  font-weight: 600;
+  color: #374151;
+}
+
+.content-body tr:last-child td {
+  border-bottom: none;
+}
+
+.content-body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 16px 0;
+}
+
+.content-body hr {
+  border: none;
+  height: 1px;
+  background: #e5e7eb;
+  margin: 24px 0;
+}
+
+.content-body strong,
+.content-body b {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.content-body em,
+.content-body i {
+  font-style: italic;
+}
+
+.content-body mark {
+  background: #fef3c7;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+.content-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.content-body::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.content-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.content-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.security-alert {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  border: 1px solid #fca5a5;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 0 24px 0 24px;
+  border-left: 4px solid #dc2626;
+}
+
+.alert-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
   color: #dc2626;
   font-weight: 700;
   font-size: 16px;
 }
 
-.warning-header svg {
-  width: 20px;
-  height: 20px;
+.alert-header svg {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
 }
 
-.security-warning p {
+.alert-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  flex-shrink: 0;
+}
+
+.alert-content {
+  flex: 1;
+}
+
+.alert-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #dc2626;
+  margin: 0 0 8px 0;
+}
+
+.security-alert p {
   color: #991b1b;
   margin: 0 0 12px 0;
-  font-weight: 600;
+  font-weight: 500;
+  line-height: 1.5;
 }
 
-.security-warning ul {
+.security-alert ul {
   color: #991b1b;
   margin: 0;
   padding-left: 20px;
 }
 
-.security-warning li {
-  margin-bottom: 4px;
+.security-alert li {
+  margin-bottom: 6px;
+  line-height: 1.5;
 }
 
-.modal-footer {
+.detection-reason {
+  color: #dc2626;
+  line-height: 1.6;
+  font-size: 14px;
+}
+
+.detection-reason p {
+  margin: 8px 0;
+  color: #991b1b;
+  font-weight: 500;
+}
+
+.detection-reason strong {
+  font-weight: 600;
+  color: #991b1b;
+}
+
+.detection-reason em {
+  font-style: italic;
+  color: #b91c1c;
+}
+
+.detection-reason ul, .detection-reason ol {
+  margin: 8px 0;
+  padding-left: 20px;
+  color: #991b1b;
+}
+
+.detection-reason li {
+  margin: 4px 0;
+}
+
+.detection-reason code {
+  background: rgba(220, 38, 38, 0.1);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: #991b1b;
+}
+
+.detection-reason blockquote {
+  border-left: 3px solid #dc2626;
+  padding-left: 12px;
+  margin: 8px 0;
+  color: #991b1b;
+  font-style: italic;
+}
+
+.sidebar-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
   padding: 20px 24px;
   border-top: 1px solid #e5e7eb;
-  background: #f8fafc;
+  background: white;
+  margin-top: auto;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  text-decoration: none;
+}
+
+.btn-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.btn-secondary {
+  background: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.btn-secondary:hover {
+  background: #e5e7eb;
+  color: #1a1a1a;
+  transform: translateY(-1px);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: white;
+}
+
+.btn-danger:hover {
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+/* 侧边栏动画效果 */
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+.sidebar-open .email-detail-sidebar {
+  animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 滚动条美化 */
+.sidebar-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-body::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.sidebar-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.sidebar-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .btn-primary,
@@ -1621,31 +2047,31 @@ onUnmounted(() => {
   cursor: default;
 }
 
-.priority-tag.importance.high {
+.priority-tag.importance.高 {
   background: linear-gradient(135deg, #fee2e2 0%, #fca5a5 100%);
   color: #991b1b;
   border: 1px solid #fca5a5;
 }
 
-.priority-tag.importance.medium {
+.priority-tag.importance.中 {
   background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
   color: #92400e;
   border: 1px solid #fde68a;
 }
 
-.priority-tag.importance.low {
+.priority-tag.importance.低 {
   background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
   color: #6b7280;
   border: 1px solid #e5e7eb;
 }
 
-.priority-tag.urgency.urgent {
+.priority-tag.urgency.紧急 {
   background: linear-gradient(135deg, #ddd6fe 0%, #c4b5fd 100%);
   color: #6b21a8;
   border: 1px solid #c4b5fd;
 }
 
-.priority-tag.urgency.normal {
+.priority-tag.urgency.普通 {
   background: linear-gradient(135deg, #e0f2fe 0%, #b3e5fc 100%);
   color: #0277bd;
   border: 1px solid #b3e5fc;
@@ -1939,16 +2365,21 @@ onUnmounted(() => {
   height: 16px;
 }
 
-/* 主要内容区域 - 修改为不限制高度 */
+/* 主要内容区域 */
 .main-content {
   display: flex;
   flex-direction: column;
-  /* 移除 flex: 1 和 overflow 限制，允许内容自然扩展 */
+  flex: 1;
+  height: 100%;
+  overflow: hidden;
 }
 
-/* 邮件列表容器 - 移除滚动限制 */
+/* 邮件列表容器 */
 .email-list-container {
-  /* 移除所有 overflow 和 flex 属性，让内容自然显示 */
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  background: #f8fafc;
 }
 
 /* 隐藏邮件列表的滚动条（不再需要） */
@@ -2120,6 +2551,67 @@ onUnmounted(() => {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   border-bottom: 1px solid #e2e8f0;
   flex-shrink: 0;
+}
+
+.receiver-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.receiver-email {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 500;
+  font-family: 'SF Mono', 'Monaco', monospace;
+}
+
+.priority-indicators {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.priority-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.priority-icon svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* 重要程度图标颜色 */
+.priority-icon.importance.高 {
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  color: white;
+}
+
+.priority-icon.importance.中 {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+}
+
+.priority-icon.importance.低 {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+  color: white;
+}
+
+/* 紧急程度图标颜色 */
+.priority-icon.urgency.紧急 {
+  background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+  color: white;
+}
+
+.priority-icon.urgency.普通 {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  color: white;
 }
 
 .size-compact .card-header {
@@ -2480,41 +2972,6 @@ onUnmounted(() => {
   font-size: 16px;
 }
 
-.page-size-selector {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.selector-label {
-  font-size: 14px;
-  color: #64748b;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.page-size-select {
-  padding: 8px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  background: white;
-  font-size: 14px;
-  color: #374151;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 80px;
-}
-
-.page-size-select:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.page-size-select:hover {
-  border-color: #9ca3af;
-}
-
 /* 响应式设计改进 */
 @media (max-width: 1400px) {
   .email-grid.view-grid.size-compact {
@@ -2634,10 +3091,6 @@ onUnmounted(() => {
     order: 2;
   }
 
-  .page-size-selector {
-    order: 3;
-  }
-
   .pagination-info {
     order: 1;
   }
@@ -2735,12 +3188,55 @@ onUnmounted(() => {
     height: 36px;
     font-size: 13px;
   }
+}
 
-  .page-size-selector {
-    gap: 8px;
+/* 加载状态样式 */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #666;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+.loading-text {
+  font-size: 14px;
+  color: #666;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* 响应式调整 */
+@media (max-width: 480px) {
+  .loading-container {
+    padding: 40px 20px;
   }
 
-  .selector-label {
+  .loading-spinner {
+    width: 32px;
+    height: 32px;
+    border-width: 2px;
+  }
+
+  .loading-text {
     font-size: 13px;
   }
 

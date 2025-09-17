@@ -6,18 +6,15 @@ from app import db
 
 class UrgencyLevel(Enum):
     """紧急程度枚举"""
-    LOW = 'low'        # 低
-    MEDIUM = 'medium'  # 中
-    HIGH = 'high'      # 高
-    URGENT = 'urgent'  # 紧急
+    NORMAL = '普通'    # 普通
+    URGENT = '紧急'    # 紧急
 
 
 class ImportanceLevel(Enum):
     """重要程度枚举"""
-    LOW = 'low'        # 低
-    MEDIUM = 'medium'  # 中
-    HIGH = 'high'      # 高
-    CRITICAL = 'critical' # 关键
+    LOW = '低'         # 低
+    MEDIUM = '中'      # 中
+    HIGH = '高'        # 高
 
 
 class DetectionStatus(Enum):
@@ -78,8 +75,13 @@ class EmailDetectionDetail(db.Model):
     # 邮件分析字段
     email_summary = db.Column(db.Text, nullable=True, comment='邮件摘要')
     email_type = db.Column(db.String(100), nullable=True, comment='邮件类型（可为任意字符串）')
-    urgency_level = db.Column(db.String(20), default=UrgencyLevel.LOW.value, nullable=False, comment='紧急程度')
-    importance_level = db.Column(db.String(20), default=ImportanceLevel.LOW.value, nullable=False, comment='重要程度')
+    urgency_level = db.Column(db.String(20), default=UrgencyLevel.NORMAL.value, nullable=False, comment='紧急程度')
+    importance_level = db.Column(db.String(20), default=ImportanceLevel.MEDIUM.value, nullable=False, comment='重要程度')
+    
+    # 日程相关字段
+    need_schedule = db.Column(db.Integer, default=0, nullable=False, comment='是否需要日程：0-不需要，1-需要')
+    schedule_name = db.Column(db.String(255), nullable=True, comment='日程名称')
+    schedule_time = db.Column(db.DateTime, nullable=True, comment='日程时间')
     
     # 保留字段
     reserved_field1 = db.Column(db.Text, nullable=True, comment='保留字段1')
@@ -142,6 +144,11 @@ class EmailDetectionDetail(db.Model):
             'email_type': self.email_type,
             'urgency_level': self.urgency_level,
             'importance_level': self.importance_level,
+            
+            # 日程相关
+            'need_schedule': self.need_schedule,
+            'schedule_name': self.schedule_name,
+            'schedule_time': self.schedule_time.isoformat() if self.schedule_time else None,
             
             # 保留字段
             'reserved_field1': self.reserved_field1,

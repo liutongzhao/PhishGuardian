@@ -2,7 +2,7 @@
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
-import websocketManager from '@/utils/websocket'
+
 
 const authStore = useAuthStore()
 const router = useRouter()
@@ -34,33 +34,18 @@ watch(
   () => authStore.isAuthenticated,
   (isAuthenticated) => {
     console.log('App.vue: 认证状态变化:', isAuthenticated)
-    if (isAuthenticated) {
-      // 用户登录时连接WebSocket
-      console.log('App.vue: 用户登录，连接WebSocket')
-      websocketManager.connect()
-    } else {
-      // 用户退出时断开WebSocket
-      console.log('App.vue: 用户退出，断开WebSocket')
-      websocketManager.disconnect()
-    }
   },
   { immediate: true },
 )
 
 // 组件挂载时的初始化
 onMounted(() => {
-  // 如果用户已认证，初始化WebSocket连接
-  if (authStore.isAuthenticated) {
-    console.log('App.vue: 用户已认证，初始化WebSocket连接')
-    websocketManager.connect()
-  }
+  // 初始化逻辑
 })
 
 // 组件卸载时的清理
 onUnmounted(() => {
-  // 断开WebSocket连接
-  console.log('App.vue: 组件卸载，断开WebSocket')
-  websocketManager.disconnect()
+  // 清理逻辑
 })
 
 // 点击外部关闭下拉菜单

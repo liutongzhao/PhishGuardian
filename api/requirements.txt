@@ -42,8 +42,7 @@ black==23.11.0
 # Production Server
 gunicorn==21.2.0
 
-# Task Scheduling
-APScheduler==3.10.4
+
 
 # Monitoring (optional)
 psutil==5.9.6

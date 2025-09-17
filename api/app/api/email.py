@@ -44,6 +44,192 @@ def get_email_providers(current_user):
         )
 
 
+@email_bp.route('/<int:email_id>/detection-detail', methods=['GET'])
+@token_required
+def get_email_detection_detail(current_user, email_id):
+    """获取邮件检测详情"""
+    try:
+        # 获取邮件信息
+        email = Email.query.get(email_id)
+        if not email:
+            return api_response(
+                success=False,
+                message='邮件不存在'
+            )
+        
+        # 检查邮件是否属于当前用户
+        if email.user_id != current_user.id:
+            return api_response(
+                success=False,
+                message='无权限访问该邮件'
+            )
+        
+        # 获取检测详情
+        detail = EmailDetectionDetail.find_by_email_id(email_id)
+        if not detail:
+            return api_response(
+                success=False,
+                message='邮件检测详情不存在'
+            )
+        
+        return api_response(
+            success=True,
+            message='获取邮件检测详情成功',
+            data=detail.to_dict()
+        )
+        
+    except Exception as e:
+        return api_response(
+            success=False,
+            message=f'获取邮件检测详情失败: {str(e)}'
+        )
+
+
+@email_bp.route('/list', methods=['GET'])
+@token_required
+def get_email_list(current_user):
+    """获取邮件列表"""
+    try:
+        user_id = current_user.id
+        
+        # 获取查询参数
+        page = request.args.get('page', 1, type=int)
+        page_size = request.args.get('page_size', 10, type=int)
+        filter_status = request.args.get('status', '')  # safe, phishing
+        filter_provider = request.args.get('provider', '')
+        filter_email = request.args.get('email', '')
+        filter_importance = request.args.get('importance', '')
+        filter_urgency = request.args.get('urgency', '')
+        
+        # 构建基础查询
+        query = db.session.query(Email, EmailDetectionDetail).join(
+            EmailDetectionDetail, Email.id == EmailDetectionDetail.email_id
+        ).filter(
+            Email.user_id == user_id,
+            Email.is_deleted == False,
+            Email.detection_status == EmailDetectionStatus.SUCCESS.value
+        )
+        
+        # 应用筛选条件
+        if filter_status:
+            if filter_status == 'phishing':
+                query = query.filter(EmailDetectionDetail.final_is_phishing == True)
+            elif filter_status == 'safe':
+                query = query.filter(EmailDetectionDetail.final_is_phishing == False)
+        
+        if filter_provider:
+            query = query.filter(Email.provider_display_name == filter_provider)
+            
+        if filter_email:
+            query = query.filter(Email.email_address == filter_email)
+            
+        if filter_importance:
+            query = query.filter(EmailDetectionDetail.importance_level == filter_importance)
+            
+        if filter_urgency:
+            query = query.filter(EmailDetectionDetail.urgency_level == filter_urgency)
+        
+        # 获取总数
+        total = query.count()
+        
+        # 分页查询
+        offset = (page - 1) * page_size
+        results = query.order_by(Email.email_date.desc()).offset(offset).limit(page_size).all()
+        
+        # 构建邮件列表数据
+        emails_data = []
+        for email, detail in results:
+            email_dict = email.to_dict()
+            detail_dict = detail.to_dict()
+            
+            # 合并数据
+            email_data = {
+                'id': email.id,
+                'sender': email.sender,
+                'senderEmail': email.sender,
+                'subject': email.subject,
+                'preview': email.content[:120] + '...' if email.content and len(email.content) > 120 else email.content,
+                'content': email.content,
+                'time': email.email_date.strftime('%Y年%m月%d日') if email.email_date else '',
+                'status': 'phishing' if detail.final_is_phishing else 'safe',
+                'importance': detail.importance_level if detail.importance_level else '低',
+                'urgency': detail.urgency_level if detail.urgency_level else '普通',
+                'provider': email.provider_display_name.lower() if email.provider_display_name else '',
+                'providerName': email.provider_display_name or '',
+                'email_address': email.email_address,
+                'final_fusion_score': detail.final_fusion_score,
+                'final_reason': detail.final_reason,
+                'email_summary': detail.email_summary,
+                'email_type': detail.email_type
+            }
+            emails_data.append(email_data)
+        
+        return api_response(
+            success=True,
+            message='获取邮件列表成功',
+            data={
+                'emails': emails_data,
+                'total': total,
+                'page': page,
+                'page_size': page_size,
+                'total_pages': (total + page_size - 1) // page_size
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f'获取邮件列表失败: {str(e)}')
+        return api_response(
+            success=False,
+            message=f'获取邮件列表失败: {str(e)}'
+        )
+
+
+@email_bp.route('/statistics', methods=['GET'])
+@token_required
+def get_email_statistics(current_user):
+    """获取邮件统计数据"""
+    try:
+        user_id = current_user.id
+        
+        # 获取用户所有已检测完成的邮件
+        total_query = db.session.query(Email, EmailDetectionDetail).join(
+            EmailDetectionDetail, Email.id == EmailDetectionDetail.email_id
+        ).filter(
+            Email.user_id == user_id,
+            Email.is_deleted == False,
+            Email.detection_status == EmailDetectionStatus.SUCCESS.value
+        )
+        
+        total_emails = total_query.count()
+        
+        # 统计钓鱼邮件数量
+        phishing_count = total_query.filter(
+            EmailDetectionDetail.final_is_phishing == True
+        ).count()
+        
+        # 统计安全邮件数量
+        safe_count = total_query.filter(
+            EmailDetectionDetail.final_is_phishing == False
+        ).count()
+        
+        return api_response(
+            success=True,
+            message='获取邮件统计成功',
+            data={
+                'total': total_emails,
+                'phishing': phishing_count,
+                'safe': safe_count
+            }
+        )
+        
+    except Exception as e:
+        logger.error(f'获取邮件统计失败: {str(e)}')
+        return api_response(
+            success=False,
+            message=f'获取邮件统计失败: {str(e)}'
+        )
+
+
 @email_bp.route('/<int:email_id>/set-detection-status', methods=['POST'])
 @token_required
 def set_email_detection_status(current_user, email_id):
@@ -138,7 +324,15 @@ def start_stage4_detection(current_user, email_id):
         # 提交第四阶段分析任务
         async_detection_service.submit_detection_task(
             email_id, 'stage4_analysis',
-            lambda content: _analyze_email_content_stage4(content, DEFAULT_API_URL, DEFAULT_API_KEY, DEFAULT_MODEL),
+            lambda content: _analyze_email_content_stage4(
+                content, 
+                DEFAULT_API_URL, 
+                DEFAULT_API_KEY, 
+                DEFAULT_MODEL,
+                email_date=email.email_date.strftime('%Y-%m-%d %H:%M:%S') if email.email_date else None,
+                sender=email.sender,
+                headers=email.headers
+            ),
             email.content or ''
         )
         
@@ -160,37 +354,49 @@ def start_stage4_detection(current_user, email_id):
         )
 
 
-def _analyze_email_content_stage4(content: str, api_url: str, api_key: str, model: str) -> dict:
+def _analyze_email_content_stage4(content: str, api_url: str, api_key: str, model: str, email_date: str = None, sender: str = None, headers: str = None) -> dict:
     """第四阶段邮件内容分析"""
     import requests
     import json
     
     try:
+        # 构建邮件头部信息
+        header_info = ""
+        if email_date:
+            header_info += f"邮件发送时间：{email_date}\n"
+        if sender:
+            header_info += f"邮件发送者：{sender}\n"
+        if headers:
+            header_info += f"邮件头部信息：{headers}\n"
+        
         # 构建提示词
         prompt = f"""
-请分析以下邮件内容，并以严格的JSON格式返回分析结果：
+        请分析以下邮件内容，并以严格的JSON格式返回分析结果：
 
-邮件内容：
-{content}
+        {header_info}
+        邮件内容：
+        {content}
 
-请提取以下信息：
-1. 邮件摘要（文本形式，不超过100字）
-2. 紧急程度（"紧急" 或 "普通"）
-3. 重要程度（"高"、"中" 或 "低"）
-4. 邮件类型（不超过5个字概括，如：广告营销、会员续费、会议提醒等）
-5. 是否需要添加日程（1表示需要，0表示不需要）
-6. 如果需要添加日程，请提供日程名称
+        请提取以下信息：
+        1. 邮件摘要（文本形式，不超过100字）
+        2. 紧急程度（"紧急" 或 "普通"）
+        3. 重要程度（"高"、"中" 或 "低"）
+        4. 邮件类型（不超过5个字概括，如：广告营销、会员续费、会议提醒等）
+        5. 是否需要添加日程（1表示需要，0表示不需要）
+        6. 如果需要添加日程，请提供日程名称
+        7. 如果需要添加日程，请提供日程时间（必须严格按照"2025.09.15 12:00:00"或"2025.09.15"格式，可以结合邮件发送时间推断，如果无法确定具体时间则不要提供）
 
-请严格按照以下JSON格式返回：
-{{
-  "summary": "邮件摘要",
-  "urgency_level": "普通",
-  "importance_level": "中",
-  "email_type": "邮件类型",
-  "need_schedule": 0,
-  "schedule_name": "日程名称（如果需要的话）"
-}}
-"""
+        请严格按照以下JSON格式返回：
+        {{
+        "summary": "邮件摘要",
+        "urgency_level": "普通",
+        "importance_level": "中",
+        "email_type": "邮件类型",
+        "need_schedule": 0,
+        "schedule_name": "日程名称（如果需要的话）",
+        "schedule_time": "日程时间（如果需要的话，格式：2025.09.15 12:00:00或2025.09.15）"
+        }}
+        """
         
         # 调用大模型API
         headers = {

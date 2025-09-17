@@ -4,7 +4,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Dict, Any, Optional
 from app import db
 from app.models.email_detection_detail import EmailDetectionDetail, DetectionStatus
-from app.services.websocket_service import WebSocketService
+
 from app.models.email import Email
 import logging
 
@@ -68,7 +68,7 @@ class AsyncDetectionService:
             with app.app_context():
                 # 执行检测
                 result = detection_func(*args, **kwargs)
-                print('=================',result)
+                # print('=================',result)
                 # 更新检测结果
                 self._update_detection_result(email_id, detection_type, result)
                 
@@ -163,28 +163,39 @@ class AsyncDetectionService:
                     fusion_score=final_score,
                     is_phishing=is_phishing,
                     reason=explanation
-                )
-                
-                # 设置检测阶段为第四阶段（完成）
-                # detail.detection_stage = 4
-                
-                # 更新邮件检测状态为完成
-                # email = Email.query.get(email_id)
-                # if email:
-                #     from app.models.email import EmailDetectionStatus
-                #     email.detection_status = EmailDetectionStatus.COMPLETED.value
-                
+                )     
             elif detection_type == 'stage4_analysis':
                 # 处理第四阶段邮件内容分析结果
                 if result.get('success'):
                     # print(result)
                     analysis = result.get('analysis', {})
-                    
+                    # print('analysis',analysis)
                     # 更新邮件分析字段
                     detail.email_summary = analysis.get('summary', '')
                     detail.email_type = analysis.get('email_type', '')
-                    detail.urgency_level = analysis.get('urgency_level', 1)
-                    detail.importance_level = analysis.get('importance_level', 1)
+                    detail.urgency_level = analysis.get('urgency_level', '普通')
+                    detail.importance_level = analysis.get('importance_level', '低')
+                    
+                    # 更新日程相关字段
+                    detail.need_schedule = analysis.get('need_schedule', 0)
+                    detail.schedule_name = analysis.get('schedule_name', '')
+                    
+                    # 处理日程时间字段
+                    schedule_time_str = analysis.get('schedule_time', '')
+                    if schedule_time_str:
+                        try:
+                            from datetime import datetime
+                            # 尝试解析时间格式
+                            if len(schedule_time_str) == 10:  # 格式：2025.09.15
+                                detail.schedule_time = datetime.strptime(schedule_time_str, '%Y.%m.%d')
+                            elif len(schedule_time_str) == 19:  # 格式：2025.09.15 12:00:00
+                                detail.schedule_time = datetime.strptime(schedule_time_str, '%Y.%m.%d %H:%M:%S')
+                            else:
+                                detail.schedule_time = None
+                        except ValueError:
+                            detail.schedule_time = None
+                    else:
+                        detail.schedule_time = None
                     
                     # 设置reserved_field2为'2'表示分析完成
                     detail.reserved_field2 = '2'
@@ -194,6 +205,9 @@ class AsyncDetectionService:
                     print(f"类型: {analysis.get('email_type', '')}")
                     print(f"紧急程度: {analysis.get('urgency_level', 1)}")
                     print(f"重要程度: {analysis.get('importance_level', 1)}")
+                    print(f"需要日程: {analysis.get('need_schedule', 0)}")
+                    print(f"日程名称: {analysis.get('schedule_name', '')}")
+                    print(f"日程时间: {schedule_time_str}")
                     
                 else:
                     # 分析失败，设置错误状态
@@ -203,7 +217,7 @@ class AsyncDetectionService:
             
             db.session.commit()
             
-            # WebSocket推送功能已移除
+
             print(f"{detection_type}检测任务已完成，邮件ID: {email_id}")
             
         except Exception as e:
@@ -260,7 +274,7 @@ class AsyncDetectionService:
         
         return all_completed
     
-    # WebSocket通知方法已移除
+    
     
     def get_task_status(self, email_id: int, detection_type: str) -> Optional[str]:
         """获取任务状态"""

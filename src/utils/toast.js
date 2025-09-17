@@ -133,3 +133,14 @@ export const showSuccess = toast.success.bind(toast)
 export const showError = toast.error.bind(toast)
 export const showWarning = toast.warning.bind(toast)
 export const showInfo = toast.info.bind(toast)
+
+// useToast hook for composition API
+export const useToast = () => {
+  return {
+    showSuccess: toast.success.bind(toast),
+    showError: toast.error.bind(toast),
+    showWarning: toast.warning.bind(toast),
+    showInfo: toast.info.bind(toast),
+    show: toast.show.bind(toast)
+  }
+}
